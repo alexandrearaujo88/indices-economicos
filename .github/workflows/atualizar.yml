@@ -1,0 +1,108 @@
+name: Atualizar índices
+
+# Horários oficiais: 09:00 e 19:00 em America/Maceio (UTC−03:00, sem horário de verão).
+# O cron do GitHub Actions é sempre UTC => 12:00 e 22:00 UTC.
+# As linhas :45 são execuções de RESERVA: o GitHub pode atrasar ou descartar execuções agendadas;
+# a reserva só roda de fato se nenhuma execução terminou nas últimas 2 horas.
+on:
+  schedule:
+    - cron: "0 12,22 * * *"
+    - cron: "45 12,22 * * *"
+  workflow_dispatch:
+    inputs:
+      indice:
+        description: "Índice a atualizar (vazio = todos)"
+        type: choice
+        options: ["", ipca, icti, ist]
+        default: ""
+      simulacao:
+        description: "Somente testar as fontes, sem gravar nada"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-indices          # nunca duas atualizações ao mesmo tempo
+  cancel-in-progress: false
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resultado: ${{ steps.rodar.outputs.resultado }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: rodar
+        env:
+          PYTHONPATH: src
+          EVENTO: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+          INDICE: ${{ inputs.indice }}
+          SIMULACAO: ${{ inputs.simulacao }}
+        run: |
+          set +e
+          args=(atualizar)
+          if [ "$EVENTO" = "workflow_dispatch" ]; then
+            args+=(--gatilho manual)
+            [ -n "$INDICE" ] && args+=(--indice "$INDICE")
+            [ "$SIMULACAO" = "true" ] && args+=(--dry-run)
+          elif [[ "$CRON" == 45* ]]; then
+            args+=(--gatilho reserva --pular-se-recente 120)
+          else
+            args+=(--gatilho agendado)
+          fi
+          python -m indices "${args[@]}"
+          echo "resultado=$?" >> "$GITHUB_OUTPUT"
+          exit 0   # a falha de um índice é registrada nos logs; o commit e a publicação seguem
+      - name: Gravar dados e logs no repositório
+        run: |
+          git config user.name  "indices-bot"
+          git config user.email "indices-bot@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "Nada a gravar"
+          else
+            git commit -m "dados: atualização automática $(TZ=America/Maceio date '+%d/%m/%Y %H:%M')"
+            for i in 1 2 3; do git pull --rebase origin "${GITHUB_REF_NAME}" && git push && break || sleep 5; done
+          fi
+      - name: Falhar o job se algum índice falhou (gera notificação do GitHub)
+        if: steps.rodar.outputs.resultado != '0'
+        run: |
+          echo "::error::Ao menos um índice falhou na coleta. Veja data/logs e a aba Registros do site."
+          exit 1
+
+  publicar:
+    needs: atualizar
+    if: ${{ !cancelled() && inputs.simulacao != true }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}      # inclui o commit de dados feito pelo job anterior
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/build_site.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

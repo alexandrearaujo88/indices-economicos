@@ -1,0 +1,240 @@
+{
+ "casos": [
+  {
+   "indice": "ipca",
+   "inicio": "2025-01",
+   "fim": "2025-12",
+   "modo": "inclusivo",
+   "valor": "1000",
+   "esperado": {
+    "indice": "IPCA",
+    "modo": "inclusivo",
+    "inicio": "2025-01",
+    "fim": "2025-12",
+    "meses": 12,
+    "fator": "1.04264348",
+    "percentual": "4.26",
+    "valor_original": "1000.00",
+    "valor_corrigido": "1042.64",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ipca",
+   "inicio": "2020-03",
+   "fim": "2026-09",
+   "modo": "inclusivo",
+   "valor": "12345.67",
+   "esperado": {
+    "indice": "IPCA",
+    "modo": "inclusivo",
+    "inicio": "2020-03",
+    "fim": "2026-09",
+    "meses": 79,
+    "fator": "1.43988400",
+    "percentual": "43.99",
+    "valor_original": "12345.67",
+    "valor_corrigido": "17776.33",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ipca",
+   "inicio": "2025-09",
+   "fim": "2026-09",
+   "modo": "data_base",
+   "valor": "1000",
+   "esperado": {
+    "indice": "IPCA",
+    "modo": "data_base",
+    "inicio": "2025-09",
+    "fim": "2026-09",
+    "meses": 12,
+    "fator": "1.04576128",
+    "percentual": "4.58",
+    "valor_original": "1000.00",
+    "valor_corrigido": "1045.76",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ipca",
+   "inicio": "1994-01",
+   "fim": "1994-12",
+   "modo": "inclusivo",
+   "valor": "1000",
+   "esperado": {
+    "indice": "IPCA",
+    "modo": "inclusivo",
+    "inicio": "1994-01",
+    "fim": "1994-12",
+    "meses": 12,
+    "fator": "10.16460000",
+    "percentual": "916.46",
+    "valor_original": null,
+    "valor_corrigido": null,
+    "avisos": [
+     "Valor corrigido não calculado: para períodos que começam antes de jul/1994 a moeda era outra (cruzeiro real/URV). O percentual acumulado é válido; converta o valor para Real pela regra oficial antes de corrigi-lo."
+    ]
+   }
+  },
+  {
+   "indice": "ipca",
+   "inicio": "1994-07",
+   "fim": "2000-06",
+   "modo": "inclusivo",
+   "valor": "99.99",
+   "esperado": {
+    "indice": "IPCA",
+    "modo": "inclusivo",
+    "inicio": "1994-07",
+    "fim": "2000-06",
+    "meses": 72,
+    "fator": "1.88340002",
+    "percentual": "88.34",
+    "valor_original": "99.99",
+    "valor_corrigido": "188.32",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "icti",
+   "inicio": "2013-01",
+   "fim": "2026-08",
+   "modo": "inclusivo",
+   "valor": "1000",
+   "esperado": {
+    "indice": "ICTI",
+    "modo": "inclusivo",
+    "inicio": "2013-01",
+    "fim": "2026-08",
+    "meses": 164,
+    "fator": "2.09301797",
+    "percentual": "109.30",
+    "valor_original": "1000.00",
+    "valor_corrigido": "2093.02",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "icti",
+   "inicio": "2024-05",
+   "fim": "2025-05",
+   "modo": "data_base",
+   "valor": "250000",
+   "esperado": {
+    "indice": "ICTI",
+    "modo": "data_base",
+    "inicio": "2024-05",
+    "fim": "2025-05",
+    "meses": 12,
+    "fator": "1.04914158",
+    "percentual": "4.91",
+    "valor_original": "250000.00",
+    "valor_corrigido": "262285.39",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ist",
+   "inicio": "2006-01",
+   "fim": "2006-06",
+   "modo": "inclusivo",
+   "valor": "1000",
+   "esperado": {
+    "indice": "IST",
+    "modo": "inclusivo",
+    "inicio": "2006-01",
+    "fim": "2006-06",
+    "meses": 6,
+    "fator": "1.01721069",
+    "percentual": "1.72",
+    "valor_original": "1000.00",
+    "valor_corrigido": "1017.21",
+    "avisos": [
+     "O índice de dez/2005 não é publicado; foi reconstruído a partir da variação mensal de jan/2006 (precisão limitada a ±0,005 p.p.)."
+    ]
+   }
+  },
+  {
+   "indice": "ist",
+   "inicio": "2014-06",
+   "fim": "2017-05",
+   "modo": "inclusivo",
+   "valor": "1000",
+   "esperado": {
+    "indice": "IST",
+    "modo": "inclusivo",
+    "inicio": "2014-06",
+    "fim": "2017-05",
+    "meses": 36,
+    "fator": "1.21938232",
+    "percentual": "21.94",
+    "valor_original": "1000.00",
+    "valor_corrigido": "1219.38",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ist",
+   "inicio": "2023-07",
+   "fim": "2023-07",
+   "modo": "inclusivo",
+   "valor": "100",
+   "esperado": {
+    "indice": "IST",
+    "modo": "inclusivo",
+    "inicio": "2023-07",
+    "fim": "2023-07",
+    "meses": 1,
+    "fator": "0.99778977",
+    "percentual": "-0.22",
+    "valor_original": "100.00",
+    "valor_corrigido": "99.78",
+    "avisos": []
+   }
+  },
+  {
+   "indice": "ist",
+   "inicio": "2020-01",
+   "fim": "2026-09",
+   "modo": "data_base",
+   "valor": null,
+   "esperado": {
+    "indice": "IST",
+    "modo": "data_base",
+    "inicio": "2020-01",
+    "fim": "2026-09",
+    "meses": 80,
+    "fator": "1.55804083",
+    "percentual": "55.80",
+    "valor_original": null,
+    "valor_corrigido": null,
+    "avisos": []
+   }
+  }
+ ],
+ "erros": [
+  {
+   "indice": "ipca",
+   "inicio": "2025-12",
+   "fim": "2025-01",
+   "modo": "inclusivo",
+   "codigo": "periodo_invertido"
+  },
+  {
+   "indice": "icti",
+   "inicio": "2026-01",
+   "fim": "2026-09",
+   "modo": "inclusivo",
+   "codigo": "nao_divulgado"
+  },
+  {
+   "indice": "ist",
+   "inicio": "2005-01",
+   "fim": "2006-02",
+   "modo": "inclusivo",
+   "codigo": "fora_da_serie"
+  }
+ ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "gerado_em": "2026-11-04T11:47:30-03:00",
+  "fuso": "America/Maceio",
+  "agendamento": {
+    "horarios": [
+      "09:00",
+      "19:00"
+    ],
+    "fuso": "America/Maceio"
+  },
+  "execucao": {
+    "id": "20261104T114730-2663",
+    "inicio": "2026-11-04T11:47:30-03:00",
+    "fim": "2026-11-04T11:47:30-03:00",
+    "gatilho": "manual",
+    "resultado": "sucesso"
+  },
+  "indices": {
+    "ipca": {
+      "resultado": "sucesso",
+      "ultima_tentativa": "2026-11-04T11:47:30-03:00",
+      "mensagem": "393 nova(s) competência(s): jul/2026, ago/2026, set/2026",
+      "log_id": "20261104T114730-ipca-604a",
+      "ultima_competencia": "2026-09",
+      "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
+      "ultima_coleta_ok": "2026-11-04T11:47:30-03:00"
+    },
+    "icti": {
+      "resultado": "sucesso",
+      "ultima_tentativa": "2026-11-04T11:47:30-03:00",
+      "mensagem": "164 nova(s) competência(s): jun/2026, jul/2026, ago/2026",
+      "log_id": "20261104T114730-icti-cb05",
+      "ultima_competencia": "2026-08",
+      "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
+      "ultima_coleta_ok": "2026-11-04T11:47:30-03:00"
+    },
+    "ist": {
+      "resultado": "sucesso",
+      "ultima_tentativa": "2026-11-04T11:47:30-03:00",
+      "mensagem": "249 nova(s) competência(s): jul/2026, ago/2026, set/2026",
+      "log_id": "20261104T114730-ist-6feb",
+      "ultima_competencia": "2026-09",
+      "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
+      "ultima_coleta_ok": "2026-11-04T11:47:30-03:00"
+    }
+  }
+}

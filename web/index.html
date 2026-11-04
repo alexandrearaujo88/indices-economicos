@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Índices DAGGTIC — IPCA, ICTI e IST</title>
+  <meta name="description" content="Consulta e cálculo de índices econômicos (IPCA, ICTI e IST) com atualização automática duas vezes ao dia.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23183c64'/%3E%3Cpath d='M6 22l7-8 5 4 8-10' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="pular" href="#principal">Ir para o conteúdo</a>
+  <header class="topo">
+    <div class="topo-in">
+      <div class="marca">
+        <span class="marca-sel" aria-hidden="true"><svg viewBox="0 0 32 32" width="22" height="22"><path d="M6 22l7-8 5 4 8-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div><h1>Índices DAGGTIC</h1><p>IPCA · ICTI · IST</p></div>
+      </div>
+      <button id="estado-sistema" class="estado" type="button" aria-describedby="estado-detalhe"><span class="estado-ico" aria-hidden="true"></span><span id="estado-texto">Verificando…</span></button>
+    </div>
+    <nav class="abas" aria-label="Seções">
+      <a href="#/painel" data-aba="painel">Painel</a>
+      <a href="#/calculadora" data-aba="calculadora">Calculadora</a>
+      <a href="#/indices" data-aba="indices">Séries</a>
+      <a href="#/logs" data-aba="logs">Registros</a>
+      <a href="#/sobre" data-aba="sobre">Fontes e método</a>
+    </nav>
+  </header>
+  <div id="estado-detalhe" class="faixa" hidden></div>
+  <main id="principal" tabindex="-1"><p class="carregando">Carregando dados…</p></main>
+  <footer class="rodape"><p>Dados oficiais do IBGE, Ipea e Anatel, coletados automaticamente às 09h e 19h (horário de Maceió). Esta página não substitui as publicações oficiais.</p></footer>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
