@@ -49,7 +49,7 @@ tests/                  142 testes (pytest, Node, Chromium)
 Uma competência = uma linha (sem duplicidade); valores corrigidos pela fonte entram em `revisoes`.
 
 ## Como cada índice é coletado
-* **IPCA** — API SIDRA/IBGE (tabela 1737, JSON). Contingência: o ZIP/XLS do FTP do IBGE (método original), lido em memória.
+* **IPCA** — ZIP/XLS do FTP do IBGE (método original, lido em memória; validado no GitHub Actions). Contingência: API SIDRA/IBGE (tabela 1737, JSON), que o IBGE bloqueia (HTTP 403) para os servidores do GitHub.
 * **ICTI** — localiza no blog do Ipea a publicação “Índice de Custo da Tecnologia da Informação (ICTI) – mês de ano” mais recente e baixa o XLSX.
 * **IST** — tabelas HTML da página da Anatel (não há API/arquivo estruturado).
 

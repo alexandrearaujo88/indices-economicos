@@ -63,8 +63,8 @@ INDICES: dict[str, IndiceCfg] = {
         casas_indice=2, inicio_serie="1994-01", min_registros=300, limite_var_mes=60.0,
         fonte_nome="IBGE — SIDRA, tabela 1737 (IPCA, série histórica)",
         fonte_url="https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html",
-        metodo_coleta="API SIDRA (JSON) como fonte primária; planilha da série histórica no FTP do IBGE "
-                      "(ZIP/XLS) como contingência.",
+        metodo_coleta="Planilha da série histórica no FTP do IBGE (ZIP/XLS) como fonte primária; "
+                      "API SIDRA (JSON) como contingência.",
         metodologia_url="https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html?=&t=o-que-e",
         metodologia_acumulado="Acumulado = razão entre números-índice (Índice do mês final ÷ Índice do mês "
                               "anterior ao inicial − 1), sem composição de variações arredondadas.",

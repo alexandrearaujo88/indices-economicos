@@ -1,8 +1,8 @@
 """Coletor do IPCA (IBGE).
 
-Fonte primária: API SIDRA, tabela 1737 (JSON estruturado):
-  v 2266 = número-índice (dez/1993 = 100), v 63 = variação mensal (%), v 2265 = variação em 12 meses (%).
-Contingência: planilha 'ipca_SerieHist.zip' do FTP do IBGE (XLS/XLSX), lida em memória.
+Fonte primária: planilha 'ipca_SerieHist.zip' do FTP do IBGE (XLS/XLSX), lida em memória.
+Contingência: API SIDRA, tabela 1737 (JSON): v 2266 = número-índice (dez/1993 = 100),
+v 63 = variação mensal (%), v 2265 = variação em 12 meses (%).
 """
 from __future__ import annotations
 
@@ -132,45 +132,62 @@ def parse_linhas_ipca(linhas: list[list], inicio_serie: str | None = None) -> tu
 
 
 def parse_zip_ftp(conteudo: bytes, inicio_serie: str | None = None):
-    with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
-        nomes = [n for n in z.namelist() if n.lower().endswith((".xls", ".xlsx"))]
-        if not nomes:
-            raise ErroEstrutura("Nenhum arquivo XLS/XLSX dentro do ZIP do IBGE")
-        nome = nomes[0]
-        dados = z.read(nome)
-    linhas = _linhas_xlsx(dados) if nome.lower().endswith(".xlsx") else _linhas_xls(dados)
+    try:
+        with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
+            nomes = [n for n in z.namelist() if n.lower().endswith((".xls", ".xlsx"))]
+            if not nomes:
+                raise ErroEstrutura("Nenhum arquivo XLS/XLSX dentro do ZIP do IBGE")
+            nome = nomes[0]
+            dados = z.read(nome)
+    except zipfile.BadZipFile as e:
+        raise ErroEstrutura("O arquivo baixado do IBGE não é um ZIP válido") from e
+    try:
+        linhas = _linhas_xlsx(dados) if nome.lower().endswith(".xlsx") else _linhas_xls(dados)
+    except ErroColeta:
+        raise
+    except Exception as e:                      # planilha corrompida/ilegível (xlrd/openpyxl)
+        raise ErroEstrutura(f"Planilha do IBGE ilegível ({type(e).__name__})") from e
     regs, base = parse_linhas_ipca(linhas, inicio_serie)
     return regs, base, nome
 
 
 # --------------------------------------------------------------------------- coletor
 class ColetorIPCA(Coletor):
-    def coletar(self, log: Logger) -> ResultadoColeta:
-        cfg: IndiceCfg = self.cfg
-        avisos: list[str] = []
-        try:
-            log("Consultando API SIDRA do IBGE (tabela 1737)", url=URL_SIDRA.split("/values")[0])
-            r = obter(self.sessao, URL_SIDRA, log=log, **self._kw)
-            try:
-                dados = r.json()
-            except ValueError as e:
-                raise ErroEstrutura("Resposta do SIDRA não é JSON válido") from e
-            regs, base = parse_sidra(dados, cfg.inicio_serie)
-            if not regs:
-                raise ErroEstrutura("SIDRA não retornou nenhuma competência com número-índice")
-            log(f"SIDRA: {len(regs)} competências lidas", registros=len(regs))
-            return ResultadoColeta(regs, {"metodo": "API SIDRA", "url": URL_SIDRA.split("/p/")[0]},
-                                   base or BASE_PADRAO, avisos)
-        except ErroColeta as e:
-            msg = f"Fonte primária (SIDRA) falhou: {e}"
-            log(msg + " — tentando planilha do FTP do IBGE", nivel="aviso")
-            avisos.append(msg)
+    """Fonte primária: planilha da série histórica no FTP do IBGE (método original, validado em
+    execução real no GitHub Actions). Contingência: API SIDRA (JSON), que o IBGE pode bloquear
+    para servidores de nuvem (HTTP 403 observado no GitHub Actions)."""
+
+    def _ftp(self, log: Logger) -> ResultadoColeta:
         log("Baixando planilha da série histórica (FTP do IBGE)", url=URL_FTP)
         r = obter(self.sessao, URL_FTP, log=log, **self._kw)
-        regs, base, nome = parse_zip_ftp(r.content, cfg.inicio_serie)
-        log(f"Planilha {nome}: {len(regs)} competências lidas", registros=len(regs), arquivo=nome)
+        regs, base, nome = parse_zip_ftp(r.content, self.cfg.inicio_serie)
         if not regs:
             raise ErroEstrutura("Planilha do IBGE sem competências válidas")
-        avisos.append("Dados obtidos pela fonte de contingência (planilha do FTP do IBGE)")
-        return ResultadoColeta(regs, {"metodo": "Planilha FTP (contingência)", "url": URL_FTP, "arquivo": nome},
-                               base, avisos)
+        log(f"Planilha {nome}: {len(regs)} competências lidas", registros=len(regs), arquivo=nome)
+        return ResultadoColeta(regs, {"metodo": "Planilha FTP do IBGE", "url": URL_FTP, "arquivo": nome}, base, [])
+
+    def _sidra(self, log: Logger) -> ResultadoColeta:
+        log("Consultando API SIDRA do IBGE (tabela 1737)", url=URL_SIDRA.split("/values")[0])
+        r = obter(self.sessao, URL_SIDRA, log=log, **self._kw)
+        try:
+            dados = r.json()
+        except ValueError as e:
+            raise ErroEstrutura("Resposta do SIDRA não é JSON válido") from e
+        regs, base = parse_sidra(dados, self.cfg.inicio_serie)
+        if not regs:
+            raise ErroEstrutura("SIDRA não retornou nenhuma competência com número-índice")
+        log(f"SIDRA: {len(regs)} competências lidas", registros=len(regs))
+        return ResultadoColeta(regs, {"metodo": "API SIDRA (contingência)", "url": URL_SIDRA.split("/p/")[0]},
+                               base or BASE_PADRAO, [])
+
+    def coletar(self, log: Logger) -> ResultadoColeta:
+        try:
+            return self._ftp(log)
+        except ErroColeta as e:
+            aviso = f"Fonte primária (planilha do FTP do IBGE) falhou: {e}. Usando a API SIDRA como contingência"
+            log(aviso, nivel="aviso")
+        res = self._sidra(log)
+        res.avisos.append("Dados obtidos pela fonte de contingência (API SIDRA)")
+        log(res.avisos[-1], nivel="aviso")
+        res.avisos.insert(0, aviso)
+        return res

@@ -83,7 +83,7 @@ def atualizar_indice(codigo: str, *, execucao_id: str, gatilho: str, base: Path,
 
         ex.log("Validando dados coletados")
         v = validacao.validar(res.registros, doc_atual, cfg, res.base_detectada, relogio())
-        for a in res.avisos + v.avisos:
+        for a in v.avisos:                     # avisos do coletor já foram registrados por ele
             ex.log(a, nivel="aviso")
         if not v.ok:
             for e in v.erros:

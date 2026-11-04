@@ -57,30 +57,38 @@ def test_obter_tls_so_cai_para_inseguro_se_permitido(dormir):
 
 
 # ------------------------------------------------------------------ IPCA
-def test_ipca_fonte_primaria(dormir):
-    s = FakeSession({m_ipca.URL_SIDRA.split("/values")[0]: FakeResp(json_obj=sidra_real())})
+def test_ipca_fonte_primaria_e_o_ftp(dormir):
+    zipado = zip_com("ipca_SerieHist.xlsx", ler_xlsx_bytes("ipca_bruto.xlsx"))
+    s = FakeSession({m_ipca.URL_FTP: FakeResp(zipado)})
     res = ColetorIPCA(INDICES["ipca"], s, dormir).coletar(mudo)
     assert len(res.registros) == 393 and res.base_detectada == "dez/1993 = 100" and not res.avisos
-    assert s.n(m_ipca.URL_FTP) == 0
+    assert s.n("https://apisidra") == 0
 
 
-def test_ipca_contingencia_quando_sidra_falha(dormir):
-    zipado = zip_com("ipca_SerieHist.xlsx", ler_xlsx_bytes("ipca_bruto.xlsx"))
-    s = FakeSession({"https://apisidra.ibge.gov.br": FakeResp(status=500), m_ipca.URL_FTP: FakeResp(zipado)})
-    res = ColetorIPCA(INDICES["ipca"], s, dormir).coletar(mudo)
+def test_ipca_contingencia_sidra_quando_ftp_falha(dormir):
+    s = FakeSession({m_ipca.URL_FTP: FakeResp(status=500), "https://apisidra.ibge.gov.br": FakeResp(json_obj=sidra_real())})
+    msgs = []
+    res = ColetorIPCA(INDICES["ipca"], s, dormir).coletar(lambda m, nivel="info", **k: msgs.append((nivel, m)))
     assert len(res.registros) == 393 and any("contingência" in a for a in res.avisos)
-    assert s.n("https://apisidra") == 3
+    assert s.n(m_ipca.URL_FTP) == 3
+    assert sum(1 for n, m in msgs if n == "aviso" and "contingência" in m) >= 1
+
+
+def test_ipca_sidra_bloqueado_403_nao_e_consultado_se_ftp_ok(dormir):
+    zipado = zip_com("a.xlsx", ler_xlsx_bytes("ipca_bruto.xlsx"))
+    s = FakeSession({m_ipca.URL_FTP: FakeResp(zipado), "https://apisidra.ibge.gov.br": FakeResp(status=403)})
+    assert len(ColetorIPCA(INDICES["ipca"], s, dormir).coletar(mudo).registros) == 393
+    assert s.n("https://apisidra") == 0
 
 
 def test_ipca_falha_nas_duas_fontes(dormir):
-    s = FakeSession({"https://apisidra.ibge.gov.br": FakeResp(status=500), m_ipca.URL_FTP: requests.exceptions.ConnectionError()})
+    s = FakeSession({"https://apisidra.ibge.gov.br": FakeResp(status=403), m_ipca.URL_FTP: requests.exceptions.ConnectionError()})
     with pytest.raises(ErroColeta):
         ColetorIPCA(INDICES["ipca"], s, dormir).coletar(mudo)
 
 
-def test_ipca_sidra_com_json_invalido_cai_na_contingencia(dormir):
-    zipado = zip_com("a.xlsx", ler_xlsx_bytes("ipca_bruto.xlsx"))
-    s = FakeSession({"https://apisidra.ibge.gov.br": FakeResp(b"<html>manutencao</html>"), m_ipca.URL_FTP: FakeResp(zipado)})
+def test_ipca_ftp_com_arquivo_invalido_cai_na_contingencia(dormir):
+    s = FakeSession({m_ipca.URL_FTP: FakeResp(b"<html>manutencao</html>"), "https://apisidra.ibge.gov.br": FakeResp(json_obj=sidra_real())})
     assert len(ColetorIPCA(INDICES["ipca"], s, dormir).coletar(mudo).registros) == 393
 
 
