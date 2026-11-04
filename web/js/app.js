@@ -23,15 +23,46 @@ const sinal = (x, c = 2) => (x == null ? '—' : `<span class="${x < 0 ? 'neg' :
 const ultima = (c) => S.docs[c].serie[S.docs[c].serie.length - 1];
 
 // ------------------------------------------------------------------ estado geral
+// Quatro situações distintas (não confundir): coleta validada = a fonte foi consultada e os dados passaram na
+// validação; "atualizado" = a coleta incorporou novas competências/revisões; "sem novidades" = a coleta
+// funcionou e nada mudou (normal: cada índice tem o seu calendário de divulgação); "falha" = erro.
+const SIT = { atualizado: ['Dados atualizados', '↑', 'sucesso'], sem_novidades: ['Sem novidades', '✓', 'neutro'], falha: ['Falha', '✕', 'erro'] };
+const TIPO_ALT = { carga_inicial: 'carga inicial', novas_competencias: 'novas competências', revisao: 'revisão de valores' };
+const chipSit = (k) => { const [t, i, s] = SIT[k] || ['—', '•', 'neutro']; return `<span class="chip" data-s="${s}"><span aria-hidden="true">${i}</span>${t}</span>`; };
+function situacao(c) {
+  const i = S.status?.indices?.[c]; if (!i) return null;
+  if (i.situacao) return i.situacao;
+  if (i.resultado === 'erro') return 'falha';                         // status gerado por versão anterior
+  return /^Sem novidades/.test(i.mensagem || '') ? 'sem_novidades' : 'atualizado';
+}
+function resumoMudanca(c) {
+  const i = S.status.indices[c]; const col = i.ultima_coleta || {}; const partes = [];
+  if (i.ultima_alteracao_tipo === 'carga_inicial' && i.situacao === 'atualizado') partes.push('carga inicial dos dados');
+  else {
+    const n = (col.novas_competencias || []).length; const r = (col.competencias_revisadas || []).length;
+    if (n) partes.push(`${n} ${n === 1 ? 'nova competência' : 'novas competências'} (até ${rotulo(col.novas_competencias.at(-1))})`);
+    if (r) partes.push(`${r} ${r === 1 ? 'competência revisada' : 'competências revisadas'}`);
+  }
+  return partes.join(' e ') || 'dados atualizados';
+}
+function alteracao(c) {
+  const i = S.status?.indices?.[c]; const quando = i?.ultima_alteracao_dados || S.docs[c]?.atualizado_em;
+  if (!quando) return 'não registrada';
+  const t = TIPO_ALT[i?.ultima_alteracao_tipo];
+  return `${dataHora(quando)}${t ? ` · ${t}` : ''}`;
+}
 function saude() {
   const st = S.status;
-  if (!st) return { s: 'aviso', t: 'Sem informação de execução', d: 'O arquivo de status ainda não existe: nenhuma atualização automática foi registrada.' };
-  const idade = (Date.now() - new Date(st.execucao.fim).getTime()) / 3600000;
-  const erros = CODS.filter((c) => st.indices[c]?.resultado === 'erro');
-  if (idade > 36) return { s: 'erro', t: 'Atualização atrasada', d: `A última execução foi ${relativo(st.execucao.fim)}. As execuções automáticas deveriam ocorrer às 09h e às 19h. Os dados exibidos são os últimos válidos.` };
-  if (erros.length) return { s: 'erro', t: `Falha em ${erros.map((c) => c.toUpperCase()).join(', ')}`, d: `A última coleta de ${erros.map((c) => c.toUpperCase()).join(', ')} falhou. Os dados anteriores foram preservados e a próxima tentativa é ${dataHora(proximaExecucao())}. Detalhes em Registros.` };
-  if (CODS.some((c) => st.indices[c]?.resultado === 'aviso')) return { s: 'aviso', t: 'Atualizado, com avisos', d: 'A última coleta terminou com avisos (por exemplo, revisão de valores ou fonte de contingência). Veja em Registros.' };
-  return { s: 'sucesso', t: 'Tudo em dia', d: `Última atualização ${relativo(st.execucao.fim)} (${dataHora(st.execucao.fim)}). Próxima: ${dataHora(proximaExecucao())}.` };
+  if (!st) return { s: 'aviso', t: 'Sem informação de execução', d: 'O arquivo de status ainda não existe: nenhuma coleta automática foi registrada.' };
+  const fim = st.execucao.fim; const idade = (Date.now() - new Date(fim).getTime()) / 3600000;
+  const falhas = CODS.filter((c) => situacao(c) === 'falha');
+  const prox = `Próxima coleta: ${dataHora(proximaExecucao())}.`;
+  if (idade > 36) return { s: 'erro', t: 'Coleta atrasada', d: `A última coleta foi ${relativo(fim)}. As coletas automáticas deveriam ocorrer às 09h e às 19h. Os dados exibidos são os últimos válidos.` };
+  if (falhas.length) { const l = falhas.map((c) => c.toUpperCase()).join(', '); return { s: 'erro', t: `Falha em ${l}`, d: `A última coleta de ${l} falhou. Os dados anteriores foram preservados. ${prox} Detalhes em Registros.` }; }
+  if (CODS.some((c) => st.indices[c]?.resultado === 'aviso')) return { s: 'aviso', t: 'Coleta validada, com avisos', d: 'A última coleta terminou com avisos (por exemplo, revisão de valores ou fonte de contingência). Veja em Registros.' };
+  const mudou = CODS.filter((c) => situacao(c) === 'atualizado');
+  if (mudou.length) return { s: 'sucesso', t: 'Dados atualizados', d: `${mudou.map((c) => `${c.toUpperCase()}: ${resumoMudanca(c)}`).join(' · ')}. Coleta validada ${relativo(fim)} (${dataHora(fim)}). ${prox}` };
+  return { s: 'sucesso', t: 'Coleta validada, sem novidades', d: `As fontes foram consultadas e os dados validados ${relativo(fim)} (${dataHora(fim)}); nenhuma competência nova ou revisão. ${prox}` };
 }
 function pintarEstado() {
   const h = saude();
@@ -50,14 +81,16 @@ function viewPainel() {
   const cards = CODS.map((c) => {
     const d = S.docs[c]; if (!d) return `<div class="painel"><h3>${c.toUpperCase()}</h3><p class="vazio">Dados indisponíveis.</p></div>`;
     const u = ultima(c); const info = S.status?.indices?.[c]; const casas = d.indice.casas_indice;
-    const ok = info?.ultima_coleta_ok;
+    const ok = info?.ultima_coleta_ok; const sit = situacao(c);
     const tardio = atrasoDados(c) > 75;
+    const detalhe = sit === 'atualizado' ? `<br>Nesta coleta: ${esc(resumoMudanca(c))}` :
+      sit === 'falha' ? `<br><strong>Falha em ${dataHora(info.ultima_falha?.em || info.ultima_tentativa)}:</strong> ${esc(info.ultima_falha?.mensagem || info.mensagem)}` : '';
     return `<a class="painel ind" href="#/indices/${c}" aria-label="Ver série do ${d.indice.sigla}">
-      <div class="ind-topo"><span class="ind-sigla">${d.indice.sigla}</span>${info ? chip(info.resultado) : chip('neutro')}</div>
+      <div class="ind-topo"><span class="ind-sigla">${d.indice.sigla}</span>${sit ? chipSit(sit) : chip('neutro')}</div>
       <span class="ind-nome">${esc(d.indice.nome)} · ${esc(d.indice.orgao)}</span>
       <div class="grande">${sinal(u.var_12m)}</div><div class="rot">variação em 12 meses até ${rotulo(u.competencia)}</div>
       <div class="par"><div><span class="rot">Mês</span><b>${sinal(u.var_mes)}</b></div><div><span class="rot">Índice</span><b>${num(u.indice, casas)}</b></div></div>
-      <div class="meta">Última competência: ${compLonga(u.competencia)}${tardio ? ' · <strong>sem competência nova há mais de 75 dias</strong>' : ''}<br>Última coleta bem-sucedida: ${ok ? `${dataHora(ok)} (${relativo(ok)})` : '—'}<br>Dados alterados em ${dataHora(d.atualizado_em)}</div>
+      <div class="meta">Competência mais recente: ${compLonga(u.competencia)}${tardio ? '<br>Próxima competência ainda não divulgada pela fonte.' : ''}<br>Última coleta bem-sucedida: ${ok ? `${dataHora(ok)} (${relativo(ok)})` : '—'}<br>Última alteração nos dados: ${alteracao(c)}${detalhe}${info?.resultado === 'aviso' ? '<br>Coleta concluída com avisos (veja em Registros).' : ''}</div>
     </a>`;
   }).join('');
   const rec = (S.cons || []).filter((e) => e.indice !== 'sistema').slice(0, 6);
@@ -145,7 +178,7 @@ function viewSeries(cod) {
   <div class="barra"><div class="seg" role="group" aria-label="Índice">${CODS.map((x) => `<button type="button" data-cod="${x}" aria-pressed="${x === c}">${S.docs[x].indice.sigla}</button>`).join('')}</div>
     <div class="seg" role="group" aria-label="Período do gráfico">${[[5, '5 anos'], [10, '10 anos'], [0, 'Tudo']].map(([a, t]) => `<button type="button" data-anos="${a}" aria-pressed="${serieEstado.anos === a}">${t}</button>`).join('')}</div></div>
   <div class="painel"><h3 style="font-size:1rem;margin-bottom:8px">Variação em 12 meses (%)</h3><div class="gwrap" id="gw">${grafico(d, serieEstado.anos).svg}<div class="tip" id="tip" hidden></div></div>
-    <p class="meta">Competência mais recente: ${compLonga(d.ultima_competencia)} · Base: ${esc(d.indice.base)} · Fonte: <a href="${esc(d.fonte.url_oficial)}" rel="noopener">${esc(d.fonte.nome)}</a> · Dados alterados em ${dataHora(d.atualizado_em)}${info?.ultima_coleta_ok ? ` · Última coleta bem-sucedida ${dataHora(info.ultima_coleta_ok)}` : ''}</p></div>
+    <p class="meta">Competência mais recente: ${compLonga(d.ultima_competencia)} · Base: ${esc(d.indice.base)} · Fonte: <a href="${esc(d.fonte.url_oficial)}" rel="noopener">${esc(d.fonte.nome)}</a> · Última alteração nos dados: ${alteracao(c)}${info?.ultima_coleta_ok ? ` · Última coleta bem-sucedida: ${dataHora(info.ultima_coleta_ok)}` : ''}</p></div>
   <section class="sec"><div class="barra"><div><label for="f-ano">Ano</label><select id="f-ano"><option value="">Todos (${d.serie.length} meses)</option>${anos.map((a) => `<option ${a === serieEstado.ano ? 'selected' : ''}>${a}</option>`).join('')}</select></div><button class="btn sec2" type="button" id="csv">Baixar CSV</button></div>
   <div class="tabela-w" tabindex="0" role="region" aria-label="Tabela de valores do ${d.indice.sigla}"><table><caption class="sr" style="position:absolute;left:-999px">Valores do ${d.indice.sigla}, do mais recente ao mais antigo</caption><thead><tr><th scope="col">Competência</th><th scope="col">Índice</th><th scope="col">Var. no mês</th><th scope="col">Var. em 12 meses</th></tr></thead><tbody>
   ${linhas.map((e) => `<tr><td>${mesNome(e.competencia).slice(0, 3)}/${e.competencia.slice(0, 4)}${e.revisoes ? `<span class="rev" title="${esc(e.revisoes.map((r) => `${dataHora(r.em)}: ${r.campo} ${r.de} → ${r.para}`).join('; '))}">revisado</span>` : ''}</td><td>${num(e.indice, casas)}</td><td>${sinal(e.var_mes)}</td><td>${e.var_12m == null ? '—' : sinal(e.var_12m)}${e.var_12m_origem === 'calculada' ? '<sup title="Calculada a partir dos números-índice; a fonte não publica este valor"> c</sup>' : ''}</td></tr>`).join('')}
@@ -220,7 +253,7 @@ function viewSobre() {
     <dl><dt>Órgão</dt><dd>${esc(d.indice.orgao)}</dd><dt>Base</dt><dd>${esc(d.indice.base)}</dd><dt>Fonte</dt><dd><a href="${esc(d.fonte.url_oficial)}" rel="noopener">${esc(d.fonte.nome)}</a></dd><dt>Coleta</dt><dd>${esc(d.fonte.metodo_coleta)}</dd><dt>Metodologia</dt><dd><a href="${esc(d.metodologia.url)}" rel="noopener">Documentação oficial</a></dd><dt>Acumulado</dt><dd>${esc(d.metodologia.acumulado)}</dd></dl>
     ${d.metodologia.observacoes.length ? `<ul>${d.metodologia.observacoes.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>` : ''}</div>`; }).join('');
   return `<div class="sobre"><h2>Fontes e método</h2><p class="sub">De onde vêm os números e como o acumulado é calculado.</p>${blocos}
-  <h3>Atualização</h3><p>A coleta roda sozinha às 09h e às 19h (horário de Maceió, UTC−3), na nuvem, sem depender de nenhum computador. Se uma fonte falhar ou entregar dados que não passam na validação, os valores anteriores são mantidos e o problema aparece em Registros. Valores já publicados que a fonte corrigir ficam marcados como “revisado”.</p>
+  <h3>Atualização</h3><p>A coleta roda sozinha às 09h e às 19h (horário de Maceió, UTC−3), na nuvem, sem depender de nenhum computador. Se uma fonte falhar ou entregar dados que não passam na validação, os valores anteriores são mantidos e o problema aparece em Registros. Valores já publicados que a fonte corrigir ficam marcados como “revisado”.</p><h3>Como ler a situação de cada índice</h3><ul><li><strong>Dados atualizados</strong>: a última coleta incorporou novas competências ou revisões.</li><li><strong>Sem novidades</strong>: a coleta funcionou e os dados validados são iguais aos já armazenados. É o normal na maior parte do mês, pois cada índice tem o seu calendário de divulgação.</li><li><strong>Falha</strong>: houve erro na coleta ou a validação reprovou os dados; os valores anteriores foram preservados.</li></ul><p>“Última coleta bem-sucedida” é quando a fonte foi consultada e validada pela última vez; “última alteração nos dados” é quando o arquivo do índice mudou de fato.</p>
   <h3>Execução manual</h3><p>Quem tem acesso ao repositório pode disparar uma atualização na aba Actions do GitHub (fluxo “Atualizar índices”, botão Run workflow).</p>
   <h3>Como o acumulado é calculado</h3><p>Fator = índice do mês final ÷ índice do mês anterior ao inicial (modo “inclusivo”) ou ÷ índice do mês inicial (modo “entre datas-base”). O percentual é o fator menos 1. Não se compõem variações mensais arredondadas, o que evita acumular erro de arredondamento.</p></div>`;
 }

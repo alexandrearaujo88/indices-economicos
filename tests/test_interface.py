@@ -49,7 +49,8 @@ def test_painel_mostra_tres_indices_sem_erros(pagina):
     txt = pagina.inner_text("main")
     assert "4,58%" in txt and "3,89%" in txt and "4,08%" in txt          # 12 meses publicados/validados
     assert "setembro de 2026" in txt and "agosto de 2026" in txt
-    assert "Última coleta bem-sucedida" in txt
+    assert "Última coleta bem-sucedida" in txt and "Competência mais recente" in txt
+    assert "Última alteração nos dados" in txt
     assert pagina.erros == []
 
 
@@ -133,5 +134,74 @@ def test_status_atrasado_e_exibido(navegador, url):
     pg = ctx.new_page()
     pg.route("**/data/status.json", lambda r: r.fulfill(json=st))
     pg.goto(url); pg.wait_for_selector(".ind")
-    assert "Atualização atrasada" in pg.inner_text("#estado-sistema")
+    assert "Coleta atrasada" in pg.inner_text("#estado-sistema")
+    ctx.close()
+
+
+# ------------------------------------------------------------------ situações: validada x atualizada x sem novidades x falha
+def _pagina_com_status(navegador, url, alterar):
+    import json, urllib.request
+    from datetime import datetime, timedelta, timezone
+    st = json.load(urllib.request.urlopen(url + "data/status.json"))
+    agora = datetime.now(timezone(timedelta(hours=-3))).isoformat()
+    st["execucao"]["fim"] = agora
+    for i in st["indices"].values():
+        i.update({"resultado": "sucesso", "situacao": "sem_novidades", "ultima_coleta_ok": agora, "ultima_tentativa": agora,
+                  "ultima_coleta": {"novas_competencias": [], "competencias_revisadas": []},
+                  "ultima_alteracao_dados": "2026-09-01T09:00:00-03:00", "ultima_alteracao_tipo": "novas_competencias"})
+    alterar(st)
+    ctx = navegador.new_context(locale="pt-BR", timezone_id="America/Maceio")
+    pg = ctx.new_page()
+    pg.route("**/data/status.json", lambda r: r.fulfill(json=st))
+    pg.goto(url); pg.wait_for_selector(".ind")
+    return ctx, pg
+
+
+def test_sem_novidades_nao_e_erro_nem_atualizacao(navegador, url):
+    ctx, pg = _pagina_com_status(navegador, url, lambda st: None)
+    assert "Coleta validada, sem novidades" in pg.inner_text("#estado-sistema")
+    assert pg.locator(".ind .chip[data-s=neutro]").count() == 3 and pg.locator(".chip[data-s=erro]").count() == 0
+    assert "Sem novidades" in pg.inner_text(".ind") and "novas competências" in pg.inner_text(".ind")   # última alteração com tipo
+    ctx.close()
+
+
+def test_dados_atualizados_aparecem_no_painel_e_no_indice(navegador, url):
+    def alterar(st):
+        st["indices"]["ipca"].update({"situacao": "atualizado", "ultima_coleta": {"novas_competencias": ["2026-10"], "competencias_revisadas": []},
+                                      "ultima_alteracao_tipo": "novas_competencias"})
+    ctx, pg = _pagina_com_status(navegador, url, alterar)
+    assert "Dados atualizados" in pg.inner_text("#estado-sistema")
+    card = pg.locator(".ind").first.inner_text()
+    assert "Dados atualizados" in card and "1 nova competência (até out/2026)" in card
+    assert "Sem novidades" in pg.locator(".ind").nth(1).inner_text()
+    ctx.close()
+
+
+def test_falha_de_um_indice_e_individual_e_nao_atrapalha_os_outros(navegador, url):
+    def alterar(st):
+        st["indices"]["icti"].update({"resultado": "erro", "situacao": "falha",
+                                      "ultima_falha": {"em": st["execucao"]["fim"], "mensagem": "Falha na coleta: tempo esgotado"}})
+    ctx, pg = _pagina_com_status(navegador, url, alterar)
+    assert "Falha em ICTI" in pg.inner_text("#estado-sistema")
+    cards = pg.locator(".ind")
+    assert "Falha" in cards.nth(1).inner_text() and "tempo esgotado" in cards.nth(1).inner_text()
+    assert "Sem novidades" in cards.nth(0).inner_text() and "Sem novidades" in cards.nth(2).inner_text()
+    ctx.close()
+
+
+def test_status_de_versao_anterior_continua_legivel(navegador, url):
+    import json, urllib.request
+    st = json.load(urllib.request.urlopen(url + "data/status.json"))
+    for i in st["indices"].values():
+        for k in ("situacao", "ultima_coleta", "ultima_alteracao_tipo", "ultima_alteracao_dados"):
+            i.pop(k, None)
+        i["mensagem"] = "Sem novidades (última competência: set/2026)"
+    from datetime import datetime, timedelta, timezone
+    st["execucao"]["fim"] = datetime.now(timezone(timedelta(hours=-3))).isoformat()
+    ctx = navegador.new_context(locale="pt-BR")
+    pg = ctx.new_page(); erros = []
+    pg.on("pageerror", lambda e: erros.append(str(e)))
+    pg.route("**/data/status.json", lambda r: r.fulfill(json=st))
+    pg.goto(url); pg.wait_for_selector(".ind")
+    assert "sem novidades" in pg.inner_text("#estado-sistema") and erros == []
     ctx.close()

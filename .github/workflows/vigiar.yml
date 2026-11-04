@@ -1,0 +1,46 @@
+name: Vigiar atualizações
+
+# Verifica se a execução agendada das 09h/19h (Maceió) realmente ocorreu. Roda 2h15 depois de cada horário
+# (11:15 e 21:15 em Maceió = 14:15 e 00:15 UTC): 45 min da reserva + 90 min de margem para atrasos do GitHub.
+# Se não houve execução, abre uma issue de alerta (e-mail ao dono); quando uma execução ocorre, fecha a issue.
+on:
+  schedule:
+    - cron: "15 0,14 * * *"
+  workflow_dispatch:
+    inputs:
+      teste_de_alerta:
+        description: "Testar o recebimento do e-mail de alerta (abre/encerra uma issue fictícia)"
+        type: choice
+        options: [nenhum, abrir, encerrar]
+        default: nenhum
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: alertas
+  cancel-in-progress: false
+
+jobs:
+  vigiar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Teste do canal de alertas
+        if: ${{ inputs.teste_de_alerta == 'abrir' || inputs.teste_de_alerta == 'encerrar' }}
+        run: python -m indices alertas teste "$MODO"
+        env:
+          MODO: ${{ inputs.teste_de_alerta }}
+      - name: Verificar execuções agendadas
+        if: ${{ inputs.teste_de_alerta != 'abrir' && inputs.teste_de_alerta != 'encerrar' }}
+        run: python -m indices alertas vigiar

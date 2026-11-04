@@ -171,3 +171,133 @@ def test_log_nao_expoe_dados_sensiveis():
     assert "/home" not in s and "abc123" not in s and "10.1.2.3" not in s and "segredo" not in s
     assert "stack trace" in lg.sanitizar("Traceback (most recent call last):\n  File x\nValueError")
     assert len(lg.sanitizar("x" * 1000)) <= 400
+
+
+# ------------------------------------------------------------------ situação por índice (painel)
+def _status(base):
+    return json.loads((base / "status.json").read_text())["indices"]
+
+
+def test_situacao_carga_inicial_sem_novidades_e_alteracoes(docs_semeados, relogio):
+    base = docs_semeados
+    st = _status(base)
+    assert all(st[c]["situacao"] == "atualizado" and st[c]["ultima_alteracao_tipo"] == "carga_inicial" for c in st)
+    alterado_em = st["ist"]["ultima_alteracao_dados"]
+
+    executar(None, base=base, coletores=legado(), relogio=relogio, eco=None, gatilho="agendado")
+    st = _status(base)
+    assert all(st[c]["situacao"] == "sem_novidades" and st[c]["resultado"] == "sucesso" for c in st)
+    assert st["ist"]["ultima_alteracao_dados"] == alterado_em and st["ist"]["ultima_alteracao_tipo"] == "carga_inicial"
+    assert st["ist"]["ultima_coleta"] == {"novas_competencias": [], "competencias_revisadas": []}
+
+    doc = arm.carregar("ist", base)
+    regs = [Registro(e["competencia"], e["indice"], e["var_mes"]) for e in doc["serie"]]
+    novo = Registro("2026-10", round(regs[-1].indice * 1.004, 3), 0.40)
+    executar(["ist"], base=base, coletores={"ist": Fixo(ResultadoColeta(regs + [novo], {}, None, []))},
+             relogio=relogio, eco=None)
+    st = _status(base)["ist"]
+    assert st["situacao"] == "atualizado" and st["ultima_alteracao_tipo"] == "novas_competencias"
+    assert st["ultima_coleta"]["novas_competencias"] == ["2026-10"] and st["ultima_alteracao_dados"] != alterado_em
+
+    regs2 = regs + [novo]
+    regs2[-4] = Registro(regs2[-4].competencia, regs2[-4].indice + 0.002, regs2[-4].var_mes)
+    executar(["ist"], base=base, coletores={"ist": Fixo(ResultadoColeta(regs2, {}, None, []))}, relogio=relogio, eco=None)
+    st = _status(base)["ist"]
+    assert st["situacao"] == "atualizado" and st["ultima_alteracao_tipo"] == "revisao"
+    assert st["ultima_coleta"]["competencias_revisadas"] == [regs2[-4].competencia]
+
+
+def test_falha_nao_apaga_ultima_alteracao_nem_ultima_coleta_ok(docs_semeados, relogio):
+    base = docs_semeados
+    antes = _status(base)["icti"]
+    executar(["icti"], base=base, coletores={"icti": Fixo(erro=ErroColeta("fonte fora do ar"))},
+             relogio=relogio, eco=None)
+    st = _status(base)["icti"]
+    assert st["situacao"] == "falha" and st["resultado"] == "erro"
+    assert st["ultima_coleta_ok"] == antes["ultima_coleta_ok"]
+    assert st["ultima_alteracao_dados"] == antes["ultima_alteracao_dados"] and st["ultima_alteracao_tipo"] == "carga_inicial"
+
+
+def test_tipo_de_alteracao_e_inferido_do_proprio_arquivo(docs_semeados):
+    from indices.orquestrador import tipo_alteracao_doc
+    doc = arm.carregar("ipca", docs_semeados)
+    assert tipo_alteracao_doc(doc) == "carga_inicial"
+    doc["serie"][-1]["primeira_coleta"] = "2026-12-01T09:00:00-03:00"
+    assert tipo_alteracao_doc(doc) is None and tipo_alteracao_doc(None) is None
+
+
+# ------------------------------------------------------------------ reserva: nova tentativa só do que falhou
+def test_reserva_repete_apenas_indices_que_falharam_e_depois_ignora(docs_semeados, relogio):
+    base = docs_semeados
+    cols = legado()
+    cols["icti"] = Fixo(erro=ErroColeta("tempo esgotado"))
+    executar(None, base=base, coletores=cols, relogio=relogio, eco=None, gatilho="agendado")   # 1ª do dia
+    assert _status(base)["icti"]["situacao"] == "falha"
+    res = executar(None, base=base, coletores=legado(), relogio=relogio, eco=None, gatilho="reserva",
+                   pular_se_recente_min=120)
+    assert not res["pulada"] and [e["indice"] for e in res["entradas"]] == ["icti"]
+    st = _status(base)
+    assert st["icti"]["situacao"] == "sem_novidades" and st["ipca"]["situacao"] == "sem_novidades"
+    n = len(lg.ler_arquivo("icti", base))
+    res2 = executar(None, base=base, coletores=legado(), relogio=relogio, eco=None, gatilho="reserva",
+                    pular_se_recente_min=120)
+    assert res2["pulada"] and len(lg.ler_arquivo("icti", base)) == n
+
+
+def test_agendada_atrasada_depois_da_reserva_nao_duplica_a_coleta(docs_semeados, relogio):
+    base = docs_semeados
+    executar(None, base=base, coletores=legado(), relogio=relogio, eco=None, gatilho="reserva", pular_se_recente_min=120)
+    n = len(lg.ler_arquivo("ipca", base))
+    res = executar(None, base=base, coletores=legado(), relogio=relogio, eco=None, gatilho="agendado",
+                   pular_se_recente_min=120)
+    assert res["pulada"] and len(lg.ler_arquivo("ipca", base)) == n
+
+
+# ------------------------------------------------------------------ falhas não corrompem JSON nem barram os demais
+def test_falha_de_um_coletor_nao_impede_atualizacao_dos_outros_e_json_continua_valido(docs_semeados, relogio):
+    base = docs_semeados
+    icti_antes = (base / "icti.json").read_bytes()
+    doc = arm.carregar("ist", base)
+    regs = [Registro(e["competencia"], e["indice"], e["var_mes"]) for e in doc["serie"]]
+    novo = Registro("2026-10", round(regs[-1].indice * 1.004, 3), 0.40)
+    cols = {"ipca": Fixo(erro=RuntimeError("falha inesperada")), "icti": Fixo(erro=ErroColeta("fonte fora do ar")),
+            "ist": Fixo(ResultadoColeta(regs + [novo], {}, None, []))}
+    res = executar(None, base=base, coletores=cols, relogio=relogio, eco=None, gatilho="agendado")
+    por = {e["indice"]: e["resultado"] for e in res["entradas"]}
+    assert por == {"ipca": "erro", "icti": "erro", "ist": "sucesso"}
+    assert arm.carregar("ist", base)["ultima_competencia"] == "2026-10"       # o índice saudável foi atualizado
+    assert (base / "icti.json").read_bytes() == icti_antes                    # o que falhou ficou intacto
+    for nome in ("ipca", "icti", "ist", "status"):
+        json.loads((base / f"{nome}.json").read_text(encoding="utf-8"))       # todos continuam JSON válido
+    assert not list(base.glob("*.tmp")) and not (base / ".atualizacao.lock").exists()
+
+
+def test_erro_durante_a_gravacao_nao_corrompe_o_arquivo(docs_semeados, monkeypatch):
+    base = docs_semeados
+    antes = (base / "ipca.json").read_bytes()
+
+    def quebra(*a, **k):
+        raise OSError("disco cheio")
+    monkeypatch.setattr(arm.os, "replace", quebra)
+    with pytest.raises(OSError):
+        arm.escrever_json_atomico(base / "ipca.json", "{ truncado")
+    assert (base / "ipca.json").read_bytes() == antes and not list(base.glob("ipca.json.*.tmp"))
+
+
+def test_erro_inesperado_ao_gravar_vira_falha_do_indice_sem_afetar_os_demais(docs_semeados, relogio, monkeypatch):
+    base = docs_semeados
+    doc = arm.carregar("ist", base)
+    regs = [Registro(e["competencia"], e["indice"], e["var_mes"]) for e in doc["serie"]]
+    novo = Registro("2026-10", round(regs[-1].indice * 1.004, 3), 0.40)
+    original = arm.salvar
+
+    def salvar_com_defeito(codigo, d, b=None):
+        if codigo == "ist":
+            raise OSError("falha de gravação simulada")
+        return original(codigo, d, b)
+    monkeypatch.setattr(arm, "salvar", salvar_com_defeito)
+    cols = legado(); cols["ist"] = Fixo(ResultadoColeta(regs + [novo], {}, None, []))
+    res = executar(None, base=base, coletores=cols, relogio=relogio, eco=None, gatilho="agendado")
+    por = {e["indice"]: e["resultado"] for e in res["entradas"]}
+    assert por["ist"] == "erro" and por["ipca"] == "sucesso" and por["icti"] == "sucesso"
+    assert arm.carregar("ist", base)["ultima_competencia"] == "2026-09"

@@ -93,7 +93,8 @@ def atualizar_indice(codigo: str, *, execucao_id: str, gatilho: str, base: Path,
                 "gravado": False, "registros_fonte": len(v.registros)})
 
         novo, resumo = arm.mesclar(doc_atual, v.registros, cfg, relogio(), res.fonte)
-        resumo_log = {"gravado": False, "registros_fonte": len(v.registros), "novos": resumo["novos"],
+        resumo_log = {"gravado": False, "primeira_carga": doc_atual is None,
+                      "registros_fonte": len(v.registros), "novos": resumo["novos"],
                       "revisoes": resumo["revisoes"][:20], "total": resumo["total"],
                       "ultima_competencia": resumo["ultima_competencia"], "ausentes": resumo["ausentes"][:20]}
         if resumo["alterado"] and not dry_run:
@@ -128,19 +129,48 @@ def _ler_status(base: Path) -> dict:
     return {}
 
 
+def tipo_alteracao_doc(doc: dict | None) -> str | None:
+    """Natureza da última alteração, inferida do próprio arquivo quando o status ainda não a registra:
+    carga inicial = todas as competências foram coletadas no mesmo instante da última alteração."""
+    if not doc or not doc.get("serie"):
+        return None
+    if all(e.get("primeira_coleta") == doc.get("atualizado_em") and not e.get("revisoes") for e in doc["serie"]):
+        return "carga_inicial"
+    return None
+
+
 def _info_indice(codigo: str, entrada: dict, anterior: dict, base: Path) -> dict:
+    """Resumo por índice exibido no painel.
+
+    situacao: 'falha' (erro de coleta/validação), 'atualizado' (novas competências ou revisões
+    incorporadas nesta coleta) ou 'sem_novidades' (coleta validada, dados iguais aos armazenados)."""
     doc = arm.carregar(codigo, base)
     info = dict(anterior or {})
+    resumo = entrada.get("resumo") or {}
+    novos = list(resumo.get("novos") or [])
+    revisoes = sorted({r["competencia"] for r in resumo.get("revisoes") or []})
     info.update({
         "resultado": entrada["resultado"], "ultima_tentativa": entrada["fim"],
         "mensagem": entrada["mensagem"], "log_id": entrada["id"],
         "ultima_competencia": doc["ultima_competencia"] if doc else None,
         "ultima_atualizacao_dados": doc["atualizado_em"] if doc else None,
+        "ultima_alteracao_dados": doc["atualizado_em"] if doc else None,
     })
     if entrada["resultado"] in ("sucesso", "aviso"):
         info["ultima_coleta_ok"] = entrada["fim"]
+        alterou = bool(resumo.get("gravado"))
+        info["situacao"] = "atualizado" if alterou else "sem_novidades"
+        info["ultima_coleta"] = {"novas_competencias": novos, "competencias_revisadas": revisoes}
+        if alterou:
+            info["ultima_alteracao_tipo"] = ("carga_inicial" if resumo.get("primeira_carga") else
+                                             "novas_competencias" if novos else "revisao")
+        elif not info.get("ultima_alteracao_tipo"):
+            info["ultima_alteracao_tipo"] = tipo_alteracao_doc(doc)
     else:
+        info["situacao"] = "falha"
         info["ultima_falha"] = {"em": entrada["fim"], "mensagem": entrada["mensagem"]}
+        if not info.get("ultima_alteracao_tipo"):
+            info["ultima_alteracao_tipo"] = tipo_alteracao_doc(doc)
     return info
 
 
@@ -158,9 +188,16 @@ def executar(indices: list[str] | None = None, *, gatilho: str = "manual", dry_r
     if pular_se_recente_min and status.get("execucao", {}).get("fim"):
         ult = datetime.fromisoformat(status["execucao"]["fim"])
         if inicio - ult < timedelta(minutes=pular_se_recente_min):
+            # Uma execução recente cobre o horário, mas índices que falharam nela são tentados de novo.
+            falhos = [c for c in codigos if status.get("indices", {}).get(c, {}).get("resultado") == "erro"]
+            if not falhos:
+                if eco:
+                    eco(f"Execução ignorada: última execução concluída em {status['execucao']['fim']} "
+                        "sem falhas")
+                return {"resultado": "ignorada", "entradas": [], "pulada": True}
             if eco:
-                eco(f"Execução de reserva ignorada: última execução concluída em {status['execucao']['fim']}")
-            return {"resultado": "ignorada", "entradas": [], "pulada": True}
+                eco(f"Execução recente com falha em {', '.join(falhos)}: nova tentativa apenas desses índices")
+            codigos = falhos
 
     try:
         with trava(base):

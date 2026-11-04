@@ -65,22 +65,28 @@ para as correções em relação ao original (arredondamento, período invertido
 ## Implantação (uma vez)
 1. Crie um repositório no GitHub e envie este conteúdo (`git push`).
 2. **Settings → Pages → Source: GitHub Actions.**
-3. **Settings → Actions → General → Workflow permissions: Read and write.**
+3. **Settings → Actions → General → Workflow permissions: Read and write** (os fluxos declaram permissões mínimas por job).
 4. **Actions → “Atualizar índices” → Run workflow** (marque “simulação” na primeira vez para testar as três fontes
    sem gravar; depois rode sem marcar). O site fica em `https://<usuário>.github.io/<repositório>/`.
 Não há segredos, tokens nem credenciais em nenhum arquivo.
 
 ## Operação
 * **Agendamento**: cron UTC `12:00` e `22:00` = 09h e 19h em America/Maceio (UTC−3, sem horário de verão). O GitHub pode
-  atrasar execuções agendadas; por isso há uma execução de **reserva** 45 min depois, que só atua se nada rodou nas últimas 2 h.
-  O site mostra “Atualização atrasada” se a última execução tiver mais de 36 h.
+  atrasar ou descartar execuções agendadas; por isso há uma execução de **reserva** 45 min depois. Toda execução
+  automática é ignorada se outra terminou nas últimas 2 h sem falhas; índices que falharam são tentados de novo.
+* **Situação no site**: cada índice mostra *Dados atualizados* (coleta incorporou novas competências/revisões),
+  *Sem novidades* (coleta validada, dados iguais) ou *Falha*, além da última coleta bem-sucedida, da competência mais
+  recente e da última alteração efetiva nos dados. O cabeçalho mostra “Coleta atrasada” se a última coleta tiver mais de 36 h.
 * **Execução manual**: Actions → Atualizar índices → Run workflow (opcional: um índice só; modo simulação).
-* **Falhas**: o job fica vermelho (o GitHub notifica por e-mail), o site mostra o erro em Registros e os dados antigos continuam.
+* **Alertas**: falha de coletor, erro de fluxo/publicação e execução agendada ausente abrem uma issue com menção ao dono
+  (e-mail), sem repetição, e fecham sozinhas. Ver `docs/MONITORAMENTO.md` (inclui o sinal de vida externo opcional).
 * **Se uma fonte mudar de layout**: o log mostra qual etapa falhou; corrija só o arquivo do coletor correspondente.
 * **Repositório público** ⇒ site e logs são públicos. Os logs são sanitizados (sem caminhos, tokens, IPs, stack traces) e os
   dados são públicos por natureza. Para restringir o acesso, hospede `site/` atrás de um provedor com controle de acesso.
-* Execuções agendadas de repositórios públicos são pausadas após 60 dias sem atividade; como o robô faz commit a cada
-  atualização, isso não deve ocorrer, e o aviso “Atualização atrasada” do site denuncia qualquer parada.
+* O GitHub desativa agendamentos de repositórios públicos após 60 dias sem atividade (o termo não é detalhado na
+  documentação). O vigia e o sinal de vida externo detectam essa situação.
+* As actions oficiais usadas rodam em Node 24 e os runners estão fixados em `ubuntu-24.04`; revise as versões a cada
+  semestre.
 
 ## Desenvolvimento
 ```bash
