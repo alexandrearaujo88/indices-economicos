@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore: ["data/**"]
   pull_request:
+  workflow_dispatch:                 # permite repetir testes e republicação do site manualmente
 
 permissions:
   contents: read
@@ -28,7 +29,7 @@ jobs:
   publicar-interface:
     # Republica o site quando o código da interface muda (os dados são republicados pelo fluxo de atualização)
     needs: testes
-    if: github.event_name == 'push'
+    if: github.event_name != 'pull_request'
     concurrency:
       group: pages
       cancel-in-progress: false
