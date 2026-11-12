@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "gerado_em": "2026-11-11T16:00:17-03:00",
+  "gerado_em": "2026-11-11T23:36:37-03:00",
   "fuso": "America/Maceio",
   "agendamento": {
     "horarios": [
@@ -10,21 +10,21 @@
     "fuso": "America/Maceio"
   },
   "execucao": {
-    "id": "20261111T160012-171a",
-    "inicio": "2026-11-11T16:00:12-03:00",
-    "fim": "2026-11-11T16:00:17-03:00",
+    "id": "20261111T233632-3327",
+    "inicio": "2026-11-11T23:36:32-03:00",
+    "fim": "2026-11-11T23:36:37-03:00",
     "gatilho": "agendado",
     "resultado": "sucesso"
   },
   "indices": {
     "ipca": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T16:00:12-03:00",
+      "ultima_tentativa": "2026-11-11T23:36:33-03:00",
       "mensagem": "Sem novidades (última competência: set/2026)",
-      "log_id": "20261111T160012-ipca-7d5b",
+      "log_id": "20261111T233632-ipca-15b7",
       "ultima_competencia": "2026-09",
       "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T16:00:12-03:00",
+      "ultima_coleta_ok": "2026-11-11T23:36:33-03:00",
       "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
       "situacao": "sem_novidades",
       "ultima_coleta": {
@@ -35,12 +35,12 @@
     },
     "icti": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T16:00:15-03:00",
+      "ultima_tentativa": "2026-11-11T23:36:35-03:00",
       "mensagem": "Sem novidades (última competência: ago/2026)",
-      "log_id": "20261111T160012-icti-af63",
+      "log_id": "20261111T233633-icti-d37b",
       "ultima_competencia": "2026-08",
       "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T16:00:15-03:00",
+      "ultima_coleta_ok": "2026-11-11T23:36:35-03:00",
       "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
       "situacao": "sem_novidades",
       "ultima_coleta": {
@@ -51,12 +51,12 @@
     },
     "ist": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T16:00:17-03:00",
+      "ultima_tentativa": "2026-11-11T23:36:37-03:00",
       "mensagem": "Sem novidades (última competência: set/2026)",
-      "log_id": "20261111T160015-ist-01f2",
+      "log_id": "20261111T233635-ist-e92f",
       "ultima_competencia": "2026-09",
       "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T16:00:17-03:00",
+      "ultima_coleta_ok": "2026-11-11T23:36:37-03:00",
       "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
       "situacao": "sem_novidades",
       "ultima_coleta": {
