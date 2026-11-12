@@ -17,8 +17,10 @@
   "fonte": {
     "nome": "IBGE — SIDRA, tabela 1737 (IPCA, série histórica)",
     "url_oficial": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html",
-    "metodo_coleta": "API SIDRA (JSON) como fonte primária; planilha da série histórica no FTP do IBGE (ZIP/XLS) como contingência.",
-    "metodo": "Carga inicial (arquivo do projeto original)"
+    "metodo_coleta": "Planilha da série histórica no FTP do IBGE (ZIP/XLS) como fonte primária; API SIDRA (JSON) como contingência.",
+    "metodo": "Planilha FTP do IBGE",
+    "url": "https://ftp.ibge.gov.br/Precos_Indices_de_Precos_ao_Consumidor/IPCA/Serie_Historica/ipca_SerieHist.zip",
+    "arquivo": "ipca_202610SerieHist.xls"
   },
   "metodologia": {
     "url": "https://www.ibge.gov.br/estatisticas/economicas/precos-e-custos/9256-indice-nacional-de-precos-ao-consumidor-amplo.html?=&t=o-que-e",
@@ -27,10 +29,10 @@
       "A série começa em jan/1994 (transição para o Plano Real). Antes de jul/1994 os valores monetários estavam em outra moeda (cruzeiro real/URV); por isso o cálculo de valor corrigido é bloqueado para períodos que começam antes de jul/1994."
     ]
   },
-  "atualizado_em": "2026-11-04T11:47:30-03:00",
+  "atualizado_em": "2026-11-12T16:19:32-03:00",
   "primeira_competencia": "1994-01",
-  "ultima_competencia": "2026-09",
-  "total_registros": 393,
+  "ultima_competencia": "2026-10",
+  "total_registros": 394,
   "serie": [
     {"competencia": "1994-01", "data_referencia": "1994-01-01", "indice": 141.31, "var_mes": 41.31, "var_12m": 2693.84, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "1994-02", "data_referencia": "1994-02-01", "indice": 198.22, "var_mes": 40.27, "var_12m": 3035.71, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
@@ -424,6 +426,7 @@
     {"competencia": "2026-06", "data_referencia": "2026-06-01", "indice": 7652.37, "var_mes": 0.16, "var_12m": 4.64, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-07", "data_referencia": "2026-07-01", "indice": 7657.73, "var_mes": 0.07, "var_12m": 4.44, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-08", "data_referencia": "2026-08-01", "indice": 7633.23, "var_mes": -0.32, "var_12m": 4.22, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
-    {"competencia": "2026-09", "data_referencia": "2026-09-01", "indice": 7695.82, "var_mes": 0.82, "var_12m": 4.58, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"}
+    {"competencia": "2026-09", "data_referencia": "2026-09-01", "indice": 7695.82, "var_mes": 0.82, "var_12m": 4.58, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
+    {"competencia": "2026-10", "data_referencia": "2026-10-01", "indice": 7706.59, "var_mes": 0.14, "var_12m": 4.63, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-12T16:19:32-03:00"}
   ]
 }

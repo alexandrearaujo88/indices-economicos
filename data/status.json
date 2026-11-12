@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "gerado_em": "2026-11-11T23:36:37-03:00",
+  "gerado_em": "2026-11-12T16:19:40-03:00",
   "fuso": "America/Maceio",
   "agendamento": {
     "horarios": [
@@ -10,37 +10,39 @@
     "fuso": "America/Maceio"
   },
   "execucao": {
-    "id": "20261111T233632-3327",
-    "inicio": "2026-11-11T23:36:32-03:00",
-    "fim": "2026-11-11T23:36:37-03:00",
+    "id": "20261112T161931-6759",
+    "inicio": "2026-11-12T16:19:31-03:00",
+    "fim": "2026-11-12T16:19:40-03:00",
     "gatilho": "agendado",
     "resultado": "sucesso"
   },
   "indices": {
     "ipca": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T23:36:33-03:00",
-      "mensagem": "Sem novidades (última competência: set/2026)",
-      "log_id": "20261111T233632-ipca-15b7",
-      "ultima_competencia": "2026-09",
-      "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T23:36:33-03:00",
-      "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
-      "situacao": "sem_novidades",
+      "ultima_tentativa": "2026-11-12T16:19:32-03:00",
+      "mensagem": "1 nova(s) competência(s): out/2026",
+      "log_id": "20261112T161931-ipca-1b4e",
+      "ultima_competencia": "2026-10",
+      "ultima_atualizacao_dados": "2026-11-12T16:19:32-03:00",
+      "ultima_coleta_ok": "2026-11-12T16:19:32-03:00",
+      "ultima_alteracao_dados": "2026-11-12T16:19:32-03:00",
+      "situacao": "atualizado",
       "ultima_coleta": {
-        "novas_competencias": [],
+        "novas_competencias": [
+          "2026-10"
+        ],
         "competencias_revisadas": []
       },
-      "ultima_alteracao_tipo": "carga_inicial"
+      "ultima_alteracao_tipo": "novas_competencias"
     },
     "icti": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T23:36:35-03:00",
+      "ultima_tentativa": "2026-11-12T16:19:35-03:00",
       "mensagem": "Sem novidades (última competência: ago/2026)",
-      "log_id": "20261111T233633-icti-d37b",
+      "log_id": "20261112T161932-icti-57e6",
       "ultima_competencia": "2026-08",
       "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T23:36:35-03:00",
+      "ultima_coleta_ok": "2026-11-12T16:19:35-03:00",
       "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
       "situacao": "sem_novidades",
       "ultima_coleta": {
@@ -51,12 +53,12 @@
     },
     "ist": {
       "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-11T23:36:37-03:00",
+      "ultima_tentativa": "2026-11-12T16:19:40-03:00",
       "mensagem": "Sem novidades (última competência: set/2026)",
-      "log_id": "20261111T233635-ist-e92f",
+      "log_id": "20261112T161935-ist-02f7",
       "ultima_competencia": "2026-09",
       "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-11T23:36:37-03:00",
+      "ultima_coleta_ok": "2026-11-12T16:19:40-03:00",
       "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
       "situacao": "sem_novidades",
       "ultima_coleta": {
