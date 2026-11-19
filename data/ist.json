@@ -15,7 +15,8 @@
     "nome": "Anatel — Valores do IST",
     "url_oficial": "https://www.gov.br/anatel/pt-br/regulado/competicao/tarifas-e-precos/valores-do-ist",
     "metodo_coleta": "Leitura das tabelas HTML da página oficial da Anatel (não há API nem arquivo estruturado publicado).",
-    "metodo": "Carga inicial (arquivo do projeto original)"
+    "metodo": "Tabelas HTML da página oficial",
+    "url": "https://www.gov.br/anatel/pt-br/regulado/competicao/tarifas-e-precos/valores-do-ist"
   },
   "metodologia": {
     "url": "https://www.gov.br/anatel/pt-br/regulado/competicao/tarifas-e-precos/valores-do-ist",
@@ -25,10 +26,10 @@
       "A página da Anatel não publica a variação em 12 meses; ela é calculada a partir dos números-índice."
     ]
   },
-  "atualizado_em": "2026-11-04T11:47:30-03:00",
+  "atualizado_em": "2026-11-19T16:45:13-03:00",
   "primeira_competencia": "2006-01",
-  "ultima_competencia": "2026-09",
-  "total_registros": 249,
+  "ultima_competencia": "2026-10",
+  "total_registros": 250,
   "serie": [
     {"competencia": "2006-01", "data_referencia": "2006-01-01", "indice": 116.969, "var_mes": 0.58, "var_12m": null, "var_12m_origem": null, "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2006-02", "data_referencia": "2006-02-01", "indice": 116.974, "var_mes": 0.0, "var_12m": null, "var_12m_origem": null, "primeira_coleta": "2026-11-04T11:47:30-03:00"},
@@ -278,6 +279,7 @@
     {"competencia": "2026-06", "data_referencia": "2026-06-01", "indice": 361.891, "var_mes": 0.1, "var_12m": 4.8375976268, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-07", "data_referencia": "2026-07-01", "indice": 361.822, "var_mes": -0.02, "var_12m": 4.3915049293, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-08", "data_referencia": "2026-08-01", "indice": 360.487, "var_mes": -0.37, "var_12m": 3.9616438356, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
-    {"competencia": "2026-09", "data_referencia": "2026-09-01", "indice": 362.701, "var_mes": 0.61, "var_12m": 4.0820601706, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-04T11:47:30-03:00"}
+    {"competencia": "2026-09", "data_referencia": "2026-09-01", "indice": 362.701, "var_mes": 0.61, "var_12m": 4.0820601706, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
+    {"competencia": "2026-10", "data_referencia": "2026-10-01", "indice": 363.745, "var_mes": 0.29, "var_12m": 4.5133132397, "var_12m_origem": "calculada", "primeira_coleta": "2026-11-19T16:45:13-03:00"}
   ]
 }
