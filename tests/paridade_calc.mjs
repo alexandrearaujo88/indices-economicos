@@ -1,8 +1,10 @@
 // Executa web/js/calc.js contra os vetores gerados pela implementação de referência em Python.
 import { readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import { acumulado, ErroCalculo } from '../web/js/calc.js';
 
-const dir = new URL('../data/', import.meta.url);
+// Os testes passam INDICES_DATA_DIR (dados determinísticos); sem a variável, usa data/
+const dir = process.env.INDICES_DATA_DIR ? pathToFileURL(process.env.INDICES_DATA_DIR + '/') : new URL('../data/', import.meta.url);
 const docs = Object.fromEntries(['ipca', 'icti', 'ist'].map((c) => [c, JSON.parse(readFileSync(new URL(`${c}.json`, dir)))]));
 const v = JSON.parse(readFileSync(new URL('./vetores_calculo.json', import.meta.url)));
 let falhas = 0;
