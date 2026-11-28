@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 from .armazenamento import detectar_mudancas
 from .config import IndiceCfg
@@ -142,4 +142,14 @@ def validar(registros: list[Registro], doc_atual: dict | None, cfg: IndiceCfg,
         if len(mud["novos"]) > MAX_NOVOS_SEM_AVISO:
             avisos.append(f"{len(mud['novos'])} competências novas de uma vez (esperado até "
                           f"{MAX_NOVOS_SEM_AVISO}); confira se houve período sem coleta")
+    if not erros:
+        # A coleta "deu certo", mas a fonte pode ter publicado algo que o coletor não reconhece (ex.: mudança no
+        # formato do título). Defasagem acima do limite do índice => aviso visível no painel e nos registros.
+        ult = regs[-1].competencia
+        a, m = divmod(ordinal(ult) + 1, 12)
+        dias = (agora.date() - date(a, m + 1, 1)).days
+        if dias > cfg.atraso_alerta_dias:
+            avisos.append(f"A última competência da fonte ({rotulo(ult)}) tem {dias} dias desde o fim do mês "
+                          f"(limite do índice: {cfg.atraso_alerta_dias}). Confirme no site da fonte se há "
+                          "publicação mais recente que a coleta não reconheceu")
     return Validacao(regs, erros, avisos)

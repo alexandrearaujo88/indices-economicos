@@ -15,9 +15,12 @@ from ..tempo import competencia, mes_por_nome
 from .base import Coletor, Logger
 
 BLOG = "https://www.ipea.gov.br/cartadeconjuntura/index.php"
+BUSCA = "https://www.ipea.gov.br/cartadeconjuntura/?s=ICTI"      # poucos resultados, mais recente primeiro
 MAX_PAGINAS = 8
+# Título aceito: "Índice de Custo da Tecnologia da Informação (ICTI) <sep> <mês> de <ano>", com <sep> = hífen,
+# travessão ou dois-pontos (o Ipea usou "(ICTI): setembro de 2026" em nov/2026; travessões são normalizados em _norm).
 RE_TITULO = re.compile(
-    r"indice de custos? da tecnologia da informacao(?:\s*\(icti\))?\s*[-–]\s*([a-z]+)\s+de\s+(\d{4})")
+    r"indice de custos? da tecnologia da informacao(?:\s*\(icti\))?\s*[-:]\s*([a-z]+)\s+de\s+(\d{4})")
 RE_BASE = re.compile(r"\(\s*([a-zç]{3})/(\d{4})\s*=\s*100\s*\)", re.I)
 
 
@@ -28,28 +31,37 @@ def _norm(t: str) -> str:
 
 
 # --------------------------------------------------------------------------- descoberta
-def achar_posts(html: str, base_url: str = BLOG) -> list[dict]:
-    """Posts do ICTI numa página do blog: [{titulo, competencia, url}], título estrito
-    ('Índice de Custo da Tecnologia da Informação (ICTI) – <mês> de <ano>')."""
+def _titulos(html: str, base_url: str):
+    """Títulos com link em ordem de página (blog e busca: mais recente primeiro), com ou sem <article>."""
     soup = BeautifulSoup(html, "html.parser")
-    achados = []
-    for art in soup.find_all("article"):
-        h = art.find(["h1", "h2"], class_="entry-title") or art.find(["h1", "h2"])
-        if not h:
-            continue
-        titulo = h.get_text(" ", strip=True)
-        m = RE_TITULO.search(_norm(titulo))
-        if not m:
-            continue
-        mes = mes_por_nome(m.group(1))
-        if not mes:
-            continue
+    for h in soup.find_all(["h1", "h2", "h3"]):
         a = h.find("a", href=True)
-        if not a:
-            continue
-        achados.append({"titulo": titulo, "competencia": competencia(int(m.group(2)), mes),
-                        "url": urljoin(base_url, a["href"])})
+        if a:
+            yield h.get_text(" ", strip=True), urljoin(base_url, a["href"])
+
+
+def achar_posts(html: str, base_url: str = BLOG) -> list[dict]:
+    """Posts do ICTI numa página do blog ou da busca: [{titulo, competencia, url}]."""
+    achados = []
+    for titulo, url in _titulos(html, base_url):
+        m = RE_TITULO.search(_norm(titulo))
+        mes = mes_por_nome(m.group(1)) if m else None
+        if mes:
+            achados.append({"titulo": titulo, "competencia": competencia(int(m.group(2)), mes), "url": url})
     return achados
+
+
+def titulos_icti_nao_reconhecidos(html: str, base_url: str = BLOG) -> list[str]:
+    """Títulos que citam o ICTI, aparecem ANTES do primeiro post reconhecido (isto é, são mais recentes) e que
+    o padrão estrito não reconheceu: sinal de que o Ipea mudou o formato do título."""
+    nao = []
+    for titulo, _ in _titulos(html, base_url):
+        n = _norm(titulo)
+        if RE_TITULO.search(n) and mes_por_nome(RE_TITULO.search(n).group(1)):
+            break
+        if "icti" in n or "tecnologia da informacao" in n:
+            nao.append(titulo)
+    return nao
 
 
 def achar_link_planilha(html: str, base_url: str) -> str:
@@ -134,24 +146,50 @@ def parse_xlsx(conteudo: bytes, inicio_serie: str | None = None) -> tuple[list[R
 
 # --------------------------------------------------------------------------- coletor
 class ColetorICTI(Coletor):
-    def _localizar_post(self, log: Logger) -> dict:
+    def _por_busca(self, log: Logger, avisos: list[str]) -> dict | None:
+        """Caminho curto: página de busca do blog (poucos resultados). None => usar a navegação do blog."""
+        log("Procurando publicação do ICTI pela busca do blog", url=BUSCA)
+        try:
+            r = obter(self.sessao, BUSCA, log=log, **self._kw)
+        except ErroColeta as e:
+            log(f"Busca do blog indisponível ({e}); usando a navegação paginada", nivel="aviso")
+            return None
+        posts = achar_posts(r.text, BUSCA)
+        for t in titulos_icti_nao_reconhecidos(r.text, BUSCA):
+            avisos.append(f"Publicação com ICTI no título não reconhecida (formato mudou?): {t!r}")
+            log(avisos[-1], nivel="aviso")
+        if not posts:
+            log("Busca sem resultados reconhecidos; usando a navegação paginada", nivel="aviso")
+            return None
+        return max(posts, key=lambda p: p["competencia"])
+
+    def _por_navegacao(self, log: Logger, avisos: list[str]) -> dict:
         todos = []
         for pagina in range(1, MAX_PAGINAS + 1):
             url = BLOG if pagina == 1 else f"{BLOG}/page/{pagina}/"
             log(f"Procurando publicação do ICTI no blog (página {pagina})", url=url)
             r = obter(self.sessao, url, log=log, **self._kw)
             todos += achar_posts(r.text, url)
+            if pagina == 1:
+                for t in titulos_icti_nao_reconhecidos(r.text, url):
+                    if not any(t in a for a in avisos):
+                        avisos.append(f"Publicação com ICTI no título não reconhecida (formato mudou?): {t!r}")
+                        log(avisos[-1], nivel="aviso")
             if todos:
                 break
         if not todos:
             raise ErroEstrutura(f"Nenhuma publicação do ICTI encontrada nas {MAX_PAGINAS} primeiras "
                                 "páginas do blog (layout alterado ou publicação fora do período)")
-        post = max(todos, key=lambda p: p["competencia"])
+        return max(todos, key=lambda p: p["competencia"])
+
+    def _localizar_post(self, log: Logger, avisos: list[str]) -> dict:
+        post = self._por_busca(log, avisos) or self._por_navegacao(log, avisos)
         log(f"Publicação encontrada: {post['titulo']}", url=post["url"], competencia=post["competencia"])
         return post
 
     def coletar(self, log: Logger) -> ResultadoColeta:
-        post = self._localizar_post(log)
+        avisos: list[str] = []
+        post = self._localizar_post(log, avisos)
         r = obter(self.sessao, post["url"], log=log, **self._kw)
         link = achar_link_planilha(r.text, post["url"])
         nome = link.rsplit("/", 1)[-1]
@@ -162,7 +200,6 @@ class ColetorICTI(Coletor):
         if not regs:
             raise ErroEstrutura("Planilha do Ipea sem competências válidas")
         ult = regs[-1].competencia
-        avisos = []
         if ult != post["competencia"]:
             avisos.append(f"Última competência da planilha ({ult}) difere da anunciada no título do post "
                           f"({post['competencia']})")

@@ -98,9 +98,9 @@ def zip_com(nome: str, conteudo: bytes) -> bytes:
 
 
 @pytest.fixture
-def docs_semeados(base):
-    """Semeia data/ com os arquivos originais (usado por vários testes)."""
+def docs_semeados(base, relogio):
+    """Semeia data/ com os arquivos originais (usado por vários testes), com o relógio determinístico."""
     from indices.migracao import coletores_legado
     from indices.orquestrador import executar
-    executar(None, base=base, coletores=coletores_legado(FIX), eco=None)
+    executar(None, base=base, coletores=coletores_legado(FIX), eco=None, relogio=relogio)
     return base

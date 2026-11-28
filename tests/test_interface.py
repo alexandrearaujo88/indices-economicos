@@ -13,9 +13,29 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
-def url():
-    subprocess.run([sys.executable, str(RAIZ / "scripts" / "build_site.py")], check=True, capture_output=True)
-    h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(RAIZ / "site"))
+def url(tmp_path_factory):
+    """Site montado a partir de dados DETERMINÍSTICOS (planilhas originais em tests/fixtures + relógio fixo):
+    os testes não dependem dos dados reais que o robô grava em data/."""
+    import os
+    from datetime import datetime, timedelta
+    from indices.config import TZ
+    from indices.migracao import coletores_legado
+    from indices.orquestrador import executar
+    tmp = tmp_path_factory.mktemp("site")
+    dados = tmp / "data"
+    dados.mkdir()
+    t = {"v": datetime(2026, 11, 4, 11, 47, tzinfo=TZ)}
+
+    def relogio():
+        t["v"] += timedelta(seconds=1)
+        return t["v"]
+    fix = RAIZ / "tests" / "fixtures"
+    executar(None, base=dados, coletores=coletores_legado(fix), eco=None, relogio=relogio, gatilho="manual")
+    t["v"] = datetime(2026, 11, 4, 13, 43, tzinfo=TZ)
+    executar(None, base=dados, coletores=coletores_legado(fix), eco=None, relogio=relogio, gatilho="agendado")
+    env = {**os.environ, "INDICES_DATA_DIR": str(dados), "SITE_DIR": str(tmp / "site")}
+    subprocess.run([sys.executable, str(RAIZ / "scripts" / "build_site.py")], check=True, capture_output=True, env=env)
+    h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(tmp / "site"))
     h.log_message = lambda *a, **k: None
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), h)
     threading.Thread(target=srv.serve_forever, daemon=True).start()

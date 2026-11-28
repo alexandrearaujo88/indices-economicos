@@ -25,7 +25,7 @@ def ok(regs, doc=None, base=None, cfg=CFG):
 
 
 def test_serie_boa_passa_sem_avisos():
-    v = ok(serie())
+    v = ok(serie(250))                                  # termina em out/2026, perto de AGORA (04/11/2026)
     assert v.ok and v.avisos == []
 
 
@@ -103,3 +103,19 @@ def test_muitos_novos_gera_aviso():
     doc = doc_de(base_regs)
     v = ok(serie(220), doc)
     assert v.ok and any("competências novas" in a for a in v.avisos)
+
+
+def test_defasagem_acima_do_limite_gera_aviso_e_nao_bloqueia():
+    # ICTI parado em ago/2026 em 27/11/2026 (caso real: o coletor não reconheceu o post de setembro)
+    cfg = INDICES["icti"]
+    regs = regs_basicos(164, (2013, 1))                                       # termina em ago/2026
+    quase = datetime(2026, 11, 10, 9, 0, tzinfo=TZ)                          # 40 dias após o fim de agosto: normal
+    assert validar(regs, None, cfg, None, quase).avisos == []
+    tarde = datetime(2026, 11, 27, 9, 0, tzinfo=TZ)                          # 87 dias: acima de 75
+    v = validar(regs, None, cfg, None, tarde)
+    assert v.ok and any("ago/2026" in a and "87 dias" in a and "não reconheceu" in a for a in v.avisos)
+
+
+def test_defasagem_nao_gera_aviso_quando_ha_erro():
+    v = validar(regs_basicos(12, (2026, 1)), None, INDICES["ipca"], None, AGORA)
+    assert not v.ok and not any("dias desde o fim do mês" in a for a in v.avisos)

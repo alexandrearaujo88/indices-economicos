@@ -156,3 +156,23 @@ def test_link_da_planilha_prefere_icti_xlsx():
 def test_link_da_planilha_ausente():
     with pytest.raises(ErroEstrutura):
         icti.achar_link_planilha("<div class='entry-content'><a href='a.pdf'>x</a></div>", "https://x/")
+
+
+def test_descoberta_aceita_hifen_travessao_e_dois_pontos_e_ignora_outros_formatos():
+    html = "<body>" + "".join(f'<h2><a href="/p{i}">{t}</a></h2>' for i, t in enumerate([
+        "Índice de Custo da Tecnologia da Informação (ICTI): setembro de 2026",
+        "Índice de Custo da Tecnologia da Informação (ICTI) – agosto de 2026",
+        "Índice de Custo da Tecnologia da Informação (ICTI) - julho de 2026",
+        "Índice de Custo da Tecnologia da Informação (ICTI) — junho de 2026",
+        "Índice de Custos da Tecnologia da Informação: maio de 2026",
+        "ICTI | abril 2026",
+        "PIB: variação percentual em maio de 2026"])) + "</body>"
+    assert [p["competencia"] for p in icti.achar_posts(html)] == ["2026-09", "2026-08", "2026-07", "2026-06", "2026-05"]
+    assert icti.titulos_icti_nao_reconhecidos(html) == []                  # o mais recente foi reconhecido
+    so_estranho = '<h1><a href="/a">ICTI | setembro 2026</a></h1>' + html
+    assert icti.titulos_icti_nao_reconhecidos(so_estranho) == ["ICTI | setembro 2026"]
+
+
+def test_descoberta_funciona_sem_tag_article():
+    html = '<div class="post"><h1><a href="/cartadeconjuntura/p/">Índice de Custo da Tecnologia da Informação (ICTI): setembro de 2026</a></h1></div>'
+    assert icti.achar_posts(html, icti.BUSCA)[0]["url"] == "https://www.ipea.gov.br/cartadeconjuntura/p/"

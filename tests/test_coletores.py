@@ -130,8 +130,9 @@ URL_POST = "https://www.ipea.gov.br/cartadeconjuntura/index.php/2026/10/icti-ago
 URL_XLSX = "https://www.ipea.gov.br/cartadeconjuntura/wp-content/uploads/2026/10/261015_ICTI_serie_completa_agosto_26.xlsx"
 
 
-def rotas_icti(xlsx=None, pagina1=BLOG, post=POST):
+def rotas_icti(xlsx=None, pagina1=BLOG, post=POST, busca=None):
     return {m_icti.BLOG + "/page/": FakeResp(pagina1), m_icti.BLOG: FakeResp(pagina1), URL_POST: FakeResp(post),
+            m_icti.BUSCA: busca if busca is not None else FakeResp(pagina1),
             URL_XLSX: FakeResp(xlsx if xlsx is not None else ler_xlsx_bytes("icti_bruto.xlsx"))}
 
 
@@ -142,9 +143,48 @@ def test_icti_fluxo_completo(dormir):
     assert res.registros[-1].competencia == "2026-08" and not res.avisos
 
 
-def test_icti_procura_nas_proximas_paginas(dormir):
-    vazia = "<html><body><article><h1 class='entry-title'><a href='/x'>Outro tema</a></h1></article></body></html>"
+VAZIA = "<html><body><article><h1 class='entry-title'><a href='/x'>Outro tema</a></h1></article></body></html>"
+BUSCA_SET = """<html><body><h1><a href="/cartadeconjuntura/index.php/2026/11/icti-setembro/">Índice de Custo da Tecnologia da Informação (ICTI): setembro de 2026</a></h1>
+<h1><a href="/cartadeconjuntura/index.php/2026/10/icti-agosto/">Índice de Custo da Tecnologia da Informação (ICTI) – agosto de 2026</a></h1></body></html>"""
+URL_POST_SET = "https://www.ipea.gov.br/cartadeconjuntura/index.php/2026/11/icti-setembro/"
+URL_XLSX_SET = "https://www.ipea.gov.br/cartadeconjuntura/wp-content/uploads/2026/11/261117_ICTI_série_completa_setembro_26.xlsx"
+POST_SET = f"""<html><body><div class="entry-content"><a href="{URL_XLSX_SET}">Dados Xls</a></div></body></html>"""
+
+
+def test_icti_usa_a_busca_e_reconhece_titulo_com_dois_pontos(dormir):
+    # caso real de nov/2026: "(ICTI): setembro de 2026" (dois-pontos) escapava do padrão e a coleta ficava em agosto
+    rotas = rotas_icti(busca=FakeResp(BUSCA_SET))
+    rotas[URL_POST_SET] = FakeResp(POST_SET)
+    rotas[URL_XLSX_SET] = FakeResp(ler_xlsx_bytes("icti_bruto.xlsx"))
+    s = FakeSession(rotas)
+    res = ColetorICTI(INDICES["icti"], s, dormir).coletar(mudo)
+    assert res.fonte["post"] == URL_POST_SET and res.fonte["arquivo"].endswith("setembro_26.xlsx")
+    assert s.n(m_icti.BUSCA) == 1 and not [c for c in s.chamadas if c["url"] == m_icti.BLOG]   # sem navegar pelo blog
+    assert any("difere da anunciada" in a for a in res.avisos)           # fixture termina em ago/2026: aviso esperado
+
+
+def test_icti_busca_indisponivel_cai_na_navegacao_do_blog(dormir):
     rotas = rotas_icti()
+    rotas[m_icti.BUSCA] = requests.exceptions.ConnectTimeout()
+    msgs = []
+    res = ColetorICTI(INDICES["icti"], FakeSession(rotas), dormir).coletar(lambda m, nivel="info", **k: msgs.append((nivel, m)))
+    assert len(res.registros) == 164 and any(n == "aviso" and "Busca do blog indisponível" in m for n, m in msgs)
+
+
+def test_icti_busca_sem_resultados_cai_na_navegacao_do_blog(dormir):
+    rotas = rotas_icti(busca=FakeResp(VAZIA))
+    assert len(ColetorICTI(INDICES["icti"], FakeSession(rotas), dormir).coletar(mudo).registros) == 164
+
+
+def test_icti_titulo_mais_novo_nao_reconhecido_gera_aviso(dormir):
+    novo = BLOG.replace("<article>", '<article><h1 class="entry-title"><a href="/x">ICTI | setembro 2026 (nova nota)</a></h1></article>\n<article>', 1)
+    res = ColetorICTI(INDICES["icti"], FakeSession(rotas_icti(busca=FakeResp(novo))), dormir).coletar(mudo)
+    assert any("não reconhecida" in a and "setembro 2026" in a for a in res.avisos)
+
+
+def test_icti_procura_nas_proximas_paginas(dormir):
+    vazia = VAZIA
+    rotas = rotas_icti(busca=FakeResp(VAZIA))
     rotas[m_icti.BLOG] = FakeResp(vazia)
     rotas[m_icti.BLOG + "/page/2/"] = FakeResp(BLOG)
     s = FakeSession(rotas)
@@ -152,8 +192,7 @@ def test_icti_procura_nas_proximas_paginas(dormir):
 
 
 def test_icti_sem_publicacao(dormir):
-    vazia = "<html><body><article><h1 class='entry-title'><a href='/x'>Outro tema</a></h1></article></body></html>"
-    s = FakeSession({m_icti.BLOG: FakeResp(vazia)})
+    s = FakeSession({m_icti.BLOG: FakeResp(VAZIA), m_icti.BUSCA: FakeResp(VAZIA)})
     with pytest.raises(ErroEstrutura, match="Nenhuma publicação"):
         ColetorICTI(INDICES["icti"], s, dormir).coletar(mudo)
     assert s.n(m_icti.BLOG) == m_icti.MAX_PAGINAS
@@ -166,6 +205,6 @@ def test_icti_arquivo_corrompido(dormir):
 
 
 def test_icti_timeout_na_blog(dormir):
-    s = FakeSession({m_icti.BLOG: requests.exceptions.ConnectTimeout()})
+    s = FakeSession({m_icti.BLOG: requests.exceptions.ConnectTimeout(), m_icti.BUSCA: requests.exceptions.ConnectTimeout()})
     with pytest.raises(ErroColeta):
         ColetorICTI(INDICES["icti"], s, dormir).coletar(mudo)
