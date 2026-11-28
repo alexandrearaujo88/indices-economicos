@@ -18,7 +18,10 @@
     "nome": "Ipea — Carta de Conjuntura (série completa do ICTI)",
     "url_oficial": "https://www.ipea.gov.br/cartadeconjuntura/",
     "metodo_coleta": "Localização da publicação mais recente no blog Carta de Conjuntura e download direto da planilha XLSX da série completa (leitura em memória, sem conversões).",
-    "metodo": "Carga inicial (arquivo do projeto original)"
+    "metodo": "Download direto da planilha da série completa",
+    "url": "https://www.ipea.gov.br/cartadeconjuntura/wp-content/uploads/2026/11/261117_ICTI_série_completa_setembro_26.xlsx",
+    "arquivo": "261117_ICTI_série_completa_setembro_26.xlsx",
+    "post": "https://www.ipea.gov.br/cartadeconjuntura/index.php/2026/11/indice-de-custo-da-tecnologia-da-informacao-icti-setembro-de-2026/"
   },
   "metodologia": {
     "url": "https://repositorio.ipea.gov.br/bitstream/11058/8320/4/cc_39_nt_indicador_ICTI_nota_metodologica.pdf",
@@ -28,10 +31,10 @@
       "O Ipea republica a série completa a cada divulgação e já revisou valores passados; revisões são preservadas no histórico de cada competência."
     ]
   },
-  "atualizado_em": "2026-11-04T11:47:30-03:00",
+  "atualizado_em": "2026-11-28T07:38:40-03:00",
   "primeira_competencia": "2013-01",
-  "ultima_competencia": "2026-08",
-  "total_registros": 164,
+  "ultima_competencia": "2026-09",
+  "total_registros": 165,
   "serie": [
     {"competencia": "2013-01", "data_referencia": "2013-01-01", "indice": 100.2764243883, "var_mes": 0.2764243883, "var_12m": null, "var_12m_origem": null, "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2013-02", "data_referencia": "2013-02-01", "indice": 100.7072781073, "var_mes": 0.4296660173, "var_12m": null, "var_12m_origem": null, "primeira_coleta": "2026-11-04T11:47:30-03:00"},
@@ -196,6 +199,7 @@
     {"competencia": "2026-05", "data_referencia": "2026-05-01", "indice": 207.5907273018, "var_mes": 0.2508195559, "var_12m": 4.4490864754, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-06", "data_referencia": "2026-06-01", "indice": 208.8940324253, "var_mes": 0.6278243448, "var_12m": 4.0521878692, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
     {"competencia": "2026-07", "data_referencia": "2026-07-01", "indice": 208.8667214675, "var_mes": -0.0129397741, "var_12m": 3.9063716441, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
-    {"competencia": "2026-08", "data_referencia": "2026-08-01", "indice": 209.3017966958, "var_mes": 0.2083027996, "var_12m": 3.8936341198, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"}
+    {"competencia": "2026-08", "data_referencia": "2026-08-01", "indice": 209.3017966958, "var_mes": 0.2083027996, "var_12m": 3.8936341198, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-04T11:47:30-03:00"},
+    {"competencia": "2026-09", "data_referencia": "2026-09-01", "indice": 210.9970912391, "var_mes": 0.8099761063, "var_12m": 4.3642224577, "var_12m_origem": "fonte", "primeira_coleta": "2026-11-28T07:38:40-03:00"}
   ]
 }

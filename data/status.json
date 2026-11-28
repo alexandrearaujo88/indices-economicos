@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "gerado_em": "2026-11-28T00:38:56-03:00",
+  "gerado_em": "2026-11-28T07:38:40-03:00",
   "fuso": "America/Maceio",
   "agendamento": {
     "horarios": [
@@ -10,13 +10,31 @@
     "fuso": "America/Maceio"
   },
   "execucao": {
-    "id": "20261128T003850-d6db",
-    "inicio": "2026-11-28T00:38:50-03:00",
-    "fim": "2026-11-28T00:38:56-03:00",
-    "gatilho": "agendado",
+    "id": "20261128T073837-d186",
+    "inicio": "2026-11-28T07:38:37-03:00",
+    "fim": "2026-11-28T07:38:40-03:00",
+    "gatilho": "manual",
     "resultado": "sucesso"
   },
   "indices": {
+    "icti": {
+      "resultado": "sucesso",
+      "ultima_tentativa": "2026-11-28T07:38:40-03:00",
+      "mensagem": "1 nova(s) competência(s): set/2026",
+      "log_id": "20261128T073837-icti-c81b",
+      "ultima_competencia": "2026-09",
+      "ultima_atualizacao_dados": "2026-11-28T07:38:40-03:00",
+      "ultima_coleta_ok": "2026-11-28T07:38:40-03:00",
+      "ultima_alteracao_dados": "2026-11-28T07:38:40-03:00",
+      "situacao": "atualizado",
+      "ultima_coleta": {
+        "novas_competencias": [
+          "2026-09"
+        ],
+        "competencias_revisadas": []
+      },
+      "ultima_alteracao_tipo": "novas_competencias"
+    },
     "ipca": {
       "resultado": "sucesso",
       "ultima_tentativa": "2026-11-28T00:38:51-03:00",
@@ -32,22 +50,6 @@
         "competencias_revisadas": []
       },
       "ultima_alteracao_tipo": "novas_competencias"
-    },
-    "icti": {
-      "resultado": "sucesso",
-      "ultima_tentativa": "2026-11-28T00:38:54-03:00",
-      "mensagem": "Sem novidades (última competência: ago/2026)",
-      "log_id": "20261128T003851-icti-5a0a",
-      "ultima_competencia": "2026-08",
-      "ultima_atualizacao_dados": "2026-11-04T11:47:30-03:00",
-      "ultima_coleta_ok": "2026-11-28T00:38:54-03:00",
-      "ultima_alteracao_dados": "2026-11-04T11:47:30-03:00",
-      "situacao": "sem_novidades",
-      "ultima_coleta": {
-        "novas_competencias": [],
-        "competencias_revisadas": []
-      },
-      "ultima_alteracao_tipo": "carga_inicial"
     },
     "ist": {
       "resultado": "sucesso",
